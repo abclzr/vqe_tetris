@@ -29,6 +29,7 @@ def PH_Mahattan(parr):
     print('PH passes, Our schedule, Our synthesis, mahattan', flush=True)
     lnq = len(parr[0][0])
     length = lnq // 2 # `length' is a hyperparameter, and can be adjusted for best performance. Here we keep `length' fixed for simplicity.
+    ipdb.set_trace()
     coup = load_coupling_map('manhattan')
     t0 = ctime()
     a2 = depth_oriented_scheduling(parr, length=length, maxiter=30)
@@ -138,6 +139,8 @@ for i in range(0,k):
     parr = load_oplist(moles[i], benchmark='uccsd')
     PH_Mahattan(parr)
     # TK_Mahattan(parr)
+    
+exit()
 
 ############################
 # QAOA Part

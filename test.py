@@ -1,14 +1,21 @@
 from qiskit_nature.second_q.circuit.library import UCCSD, HartreeFock
 from qiskit_nature.second_q.drivers import PySCFDriver
-from qiskit_nature.second_q.mappers import JordanWignerMapper
+from qiskit_nature.second_q.mappers import JordanWignerMapper, ParityMapper, BravyiKitaevSuperFastMapper, BravyiKitaevMapper
+
+
 
 from utils.mypauli import pauliString
 
 import ipdb
 
-mapper = JordanWignerMapper()
+# mapper = JordanWignerMapper()
+# mapper = ParityMapper()
+# mapper = BravyiKitaevMapper()
+mapper = BravyiKitaevSuperFastMapper()
+
 # driver = PySCFDriver(atom="H 0 0 0; H 0 0 0.735", basis="sto-3g")
-driver = PySCFDriver(atom="B 0 0 0; H 0 1 1; H 1 0 1; H 1 1 0", basis="sto-3g")
+# driver = PySCFDriver(atom="B 0 0 0; H 0 1 1; H 1 0 1; H 1 1 0", basis="sto-3g")
+driver = PySCFDriver(atom="Li .0 .0 .0; H .0 .0 1.0", basis='sto3g')
 problem = driver.run()
 
 def gene_uccsd_oplist(num_orbitals, num_particles):
@@ -38,4 +45,4 @@ ipdb.set_trace()
 
 with open('output.txt', 'w') as f:
     for pauli_list in ansatz._operators:
-        f.write(pauli_list.paulis.__str__() + '\n')
+        f.write('[' + pauli_list.__str__() + ']\n\n')
