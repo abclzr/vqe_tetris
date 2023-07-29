@@ -9,15 +9,8 @@ mahattan_device = BackendInfo(
     name='my_backend', device_name='my_device', version='1.0',
     architecture=mahattan_arch,
     gate_set={
-        OpType.Rx,
-        OpType.Ry,
-        OpType.Rz,
         OpType.U3,
         OpType.CX,
-        OpType.H,
-        OpType.X,
-        OpType.Y,
-        OpType.S,
         OpType.Sdg,
         OpType.Measure
     })

@@ -9,8 +9,8 @@ from arch import *
 import time, sys, os
 from t_arch import *
 from config import test_scale
-
 import ipdb
+from utils.synthesis_XX import synthesis
 
 old_cwd = os.getcwd()
 set_cwd()
@@ -40,6 +40,24 @@ def PH_Mahattan(parr):
     print('Qiskit L3, Time costed:', ctime()-t0, flush=True)
 
 
+# XX Mahattan device method
+def XX_Mahattan(parr):
+    print('PH passes, Our schedule, Our synthesis, mahattan', flush=True)
+    lnq = len(parr[0][0])
+    length = lnq // 2 # `length' is a hyperparameter, and can be adjusted for best performance. Here we keep `length' fixed for simplicity.
+    coup = load_coupling_map('manhattan')
+    t0 = ctime()
+    a2 = depth_oriented_scheduling(parr, length=length, maxiter=30)
+    qc = synthesis(a2, arch='manhattan')
+    pnq = qc.num_qubits
+    print('PH, Time costed:', ctime()-t0, flush=True)
+    qc1 = transpile(qc, basis_gates=['u3', 'cx'], coupling_map=coup, initial_layout=list(range(pnq)), optimization_level=0)
+    t0 = ctime()
+    qc2 = transpile(qc, basis_gates=['u3', 'cx'], coupling_map=coup, initial_layout=list(range(pnq)), optimization_level=3)
+    print_qc(qc2)
+    print('Qiskit L3, Time costed:', ctime()-t0, flush=True)
+
+
 
 ############################
 # UCCSD Part
@@ -54,7 +72,6 @@ else:
 for i in range(0,k):
     print('UCCSD:', orbital[i])
     parr = load_oplist('jordan_wigner', moles[i])
-    ipdb.set_trace()
-    PH_Mahattan(parr)
+    XX_Mahattan(parr)
     
 exit()
