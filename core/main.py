@@ -10,7 +10,7 @@ import time, sys, os
 from t_arch import *
 from config import test_scale
 import ipdb
-from utils.synthesis_XX import synthesis
+from utils.synthesis_broccoli import synthesis
 
 old_cwd = os.getcwd()
 set_cwd()

@@ -3,6 +3,7 @@ from utils.hardware import *
 from synthesis_FT import assign_time_parameter
 from functools import partial
 from utils.scheduler import Scheduler
+import pdb
 
 def dummy_local_move(qc, graph, pauli_map, src, target):
     an = graph[src]
@@ -136,6 +137,44 @@ def synthesis_initial(pauli_layers, pauli_map=None, graph=None, qc=None, arch='m
 def synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan'):
     pauli_map, graph, qc = synthesis_initial(pauli_layers, pauli_map, graph, qc, arch)
     scheduler = Scheduler(pauli_map, graph, qc)
+    n_qubits = len(pauli_layers[0][0][0].ps)
+    for blocks in pauli_layers:
+        for block in blocks:
+            level = [-1 for i in range(n_qubits)]
+            prior = ['' for i in range(n_qubits)]
+            # level 0: always I
+            # level 1: always X, Y or Z
+            # level 2: not always the same pauli
+            for pauli_string in block:
+                for wire, pauli_op in enumerate(pauli_string.ps):
+                    if prior[wire] == '':
+                        if pauli_op == 'I':
+                            level[wire] = 0
+                            prior[wire] = 'I'
+                        elif pauli_op == 'X' or pauli_op == 'Y' or pauli_op == 'Z':
+                            level[wire] = 1
+                            prior[wire] = pauli_op
+                        else:
+                            raise Exception('None I, X, Y or Z character in ' + pauli_string.ps)
+                        continue
+                    
+                    if level[wire] == 2:
+                        continue
+                    
+                    if pauli_op == 'I':
+                        if level[wire] == 1:
+                            level[wire] = 2
+                    elif pauli_op == 'X' or pauli_op == 'Y' or pauli_op == 'Z':
+                        if level[wire] == 0:
+                            level[wire] = 2
+                        elif level[wire] == 1 and prior[wire] != pauli_op:
+                            level[wire] = 2
+                    else:
+                        raise Exception('None I, X, Y or Z character in ' + pauli_string.ps)
+            
+            pdb.set_trace()
+            print(level)
+    return
     remain_layers = []
 
     dp = []
