@@ -3,6 +3,7 @@ from utils.hardware import *
 from synthesis_FT import assign_time_parameter
 from functools import partial
 from utils.scheduler import Scheduler
+import random
 import pdb
 
 def dummy_local_move(qc, graph, pauli_map, src, target):
@@ -21,37 +22,6 @@ def dummy_local_move(qc, graph, pauli_map, src, target):
         dummy_local_move(qc, graph, pauli_map, mn, target)
 
 from qiskit import QuantumCircuit
-
-class treeNode:
-    def __init__(self, pid, status):
-        self.pid = pid
-        self.status = 0 # 0 means inner node; 1 means leaf node
-
-class tree:
-    def __init__(self, graph, dp, parent=None, depth=0):
-        self.childs = []
-        self.leaf = []
-        self.depth = depth
-        self.pid = dp[0]
-        if len(dp) == 1:
-            self.status = 1
-            self.leaf = [self]
-        else:
-            self.status = 0   
-            st = []
-            for i in range(1, len(dp)):
-                if dp[i] in graph[self.pid].adj:
-                    st.append(i)
-            st.append(len(dp))
-            for i in range(len(st)-1):
-                child = tree(graph, dp[st[i]:st[i+1]], parent=self, depth=self.depth+1)
-                self.childs.append(child)
-                self.leaf += child.leaf
-        if parent != None:
-            self.parent = parent
-# swap tree nodes only change its physical qubit id and logical id mapping;
-def swap_tree_node(t0, t1):
-    pass
 
 def pauli_single_gates(qc, pauli_map, ps, left=True):
     if left == True:
@@ -171,217 +141,97 @@ def synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan
                             level[wire] = 2
                     else:
                         raise Exception('None I, X, Y or Z character in ' + pauli_string.ps)
+                        
+            # assign level 1 qubits as flower_head
+            # assign level 2 qubits as stalk
+            flower_head = []
+            stalk = []
+            for i, l in enumerate(level):
+                if l == 1:
+                    flower_head.append(i)
+                elif l == 2:
+                    stalk.append(i)
             
-            pdb.set_trace()
-            print(level)
-    return
-    remain_layers = []
+            # do MST algorithm 3 times:
+            # 1st time: connect flower_head
+            # 2nd time: connect stalk
+            # 3rd time: connect flower_head and stalk by only one edge
+            
+            scheduler.MST_init(n_qubits)
+            
+            mst_edges1 = scheduler.MST(flower_head, edges=[(flower_head[i], flower_head[j])\
+                                                for i in range(len(flower_head))\
+                                                    for j in range(i + 1, len(flower_head))])
+            mst_edges2 = scheduler.MST(stalk, edges=[(stalk[i], stalk[j])\
+                                                for i in range(len(stalk))\
+                                                    for j in range(i + 1, len(stalk))])
+            mst_edges3 = scheduler.MST(flower_head + stalk, edges=[(f, s) for f in flower_head for s in stalk])
+            
+            # decide root:
+            # if flower_head exists, pick the node in flower_head closest to stalk
+            # if flower_head doesn't exist, pick a random node in stalk
+            if len(mst_edges3) == 1: # flower_head exists
+                e = mst_edges3[0]
+                find_root = False
+                if level[e[0]] == 1:
+                    root = e[0]
+                else:
+                    root = e[1]
+            elif len(mst_edges3) == 0:
+                assert len(mst_edges1) == 0
+                find_root = True
+                root = stalk[0]
+            scheduler.Tree_init(mst_edges1 + mst_edges2 + mst_edges3, root)
+            
+            # execution of each pauli string
+            for pauli_string in block:
+                if find_root == True:
+                    root = None
+                    for i in stalk:
+                        if pauli_string.ps[i] != 'I':
+                            root = i
+                            break
+                    scheduler.Tree_init(mst_edges2, root)
+                
+                # the left side of a pauli string circuit
+                scheduler.hardware_lock = False
+                for i in flower_head + stalk:
+                    pauli = pauli_string.ps[i]
+                    if pauli == 'I' or 'Z':
+                        pass
+                    elif pauli == 'X':
+                        scheduler.add_instruction('Logical_left_X', i)
+                    elif pauli == 'Y':
+                        scheduler.add_instruction('Logical_left_Y', i)
+                    else:
+                        raise Exception('Illegal pauli operator: ' + pauli)
+                
+                for node in scheduler.tree.node_list:
+                    if node.parent != -1:
+                        scheduler.add_instruction('Logical_CNOT', (node.idx, node.parent))
+                    else:
+                        scheduler.add_instruction('Logical_RZ', node.idx)
+                
+                scheduler.clear_uncompiled_logical_instructions()
+                # the right side of a pauli string circuit
+                scheduler.hardware_lock = True
+                for node in reversed(scheduler.tree.node_list):
+                    if node.parent != -1:
+                        scheduler.add_instruction('Logical_CNOT', (node.idx, node.parent))
+                
+                for i in reversed(flower_head + stalk):
+                    pauli = pauli_string.ps[i]
+                    if pauli == 'I' or 'Z':
+                        pass
+                    elif pauli == 'X':
+                        scheduler.add_instruction('Logical_right_X', i)
+                    elif pauli == 'Y':
+                        scheduler.add_instruction('Logical_right_Y', i)
+                    else:
+                        raise Exception('Illegal pauli operator: ' + pauli)
 
-    dp = []
-    ins = []
-    for i1 in pauli_layers:
-        for i2 in i1[:1]:
-            # small blocks postponed
-            if max([len(ps2nodes(i3.ps)) for i3 in i2]) < 3:
-                remain_layers.append([i2])
-                continue
-            lcover = compute_block_cover(i2)
-            itir = compute_block_interior(i2)
-            pcover = logical_list_physical(pauli_map, lcover)
-            ptir = logical_list_physical(pauli_map, itir)
-            lmc = -1
-            lmi = -1
-            lmt = []
-            for i3 in ptir: # pauli_map, pcover
-                dp = max_dfs_tree(graph, pcover, graph[i3])
-                if len(dp) > lmc:
-                    lmc = len(dp)
-                    lmi = i3
-                    lmt = dp
-            if len(lmt) == 0:
-                lmt = [pcover[0]]
-            lcover1 = physical_list_logical(graph, lmt)
-            nc = []
-            for i3 in lcover:
-                if i3 not in lcover1:
-                    nc.append(i3)
-            # print(nc)
-            ins = []
-            while nc != []:
-                id0, id1 = find_short_node(graph, pauli_map, nc, lmt)
-                # print(id0, id1)
-                connect_node(graph, pauli_map, pauli_map[id0], pauli_map[id1], ins)
-                # do we need to update lmt?
-                lmt.append(pauli_map[id0])
-                nc.remove(id0)
-            for i3 in ins:
-                if i3[0] == 'swap':
-                    qc.swap(i3[1][0], i3[1][1])
-            pcover = logical_list_physical(pauli_map, lcover)
-            # root is lmi
-            dp = max_dfs_tree(graph, pcover, graph[lmi])
-            # print(dp)
-            dt = tree(graph, dp)
-            for i3 in i2:
-                tree_synthesis1(qc, graph, pauli_map, dt, i3)
-        xlist = dp
-        move_overhead = len(ins)
-        for i2 in i1[1:]:
-            if max([len(ps2nodes(i3.ps)) for i3 in i2]) < 3:
-                remain_layers.append([i2])
-                continue
-            lcover = compute_block_cover(i2)
-            itir = compute_block_interior(i2)
-            pcover = logical_list_physical(pauli_map, lcover)
-            ptir = logical_list_physical(pauli_map, itir)
-            lmc = -1
-            lmi = -1
-            lmt = []
-            for i3 in ptir:
-                dp = max_dfs_tree(graph, pcover, graph[i3])
-                if len(dp) > lmc:
-                    lmc = len(dp)
-                    lmi = i3
-                    lmt = dp
-            if len(lmt) == 0:
-                lmt = [pcover[0]]
-            lcover1 = physical_list_logical(graph, lmt)
-            nc = []
-            for i3 in lcover:
-                if i3 not in lcover1:
-                    nc.append(i3)
-            ret = 0
-            ins_try = []
-            nc_try = nc.copy()
-            lmt_try = lmt.copy()
-            graph_try = graph.copy()
-            pauli_map_try = pauli_map.copy()
-            while nc_try != []:
-                id0, id1 = find_short_node(graph_try, pauli_map_try, nc_try, lmt_try)
-                ret = try_connect_node_2(graph_try, pauli_map_try, pauli_map_try[id0], pauli_map_try[id1], ins_try, xlist)
-                if ret == -1:
-                    remain_layers.append([i2])
-                    break
-                lmt_try.append(pauli_map_try[id0])
-                nc_try.remove(id0)
-            if ret == -1:
-                continue
-            if len(ins_try) > move_overhead:
-                remain_layers.append([i2])
-                continue
-            ins = []
-            while nc != []:
-                id0, id1 = find_short_node(graph, pauli_map, nc, lmt)
-                connect_node(graph, pauli_map, pauli_map[id0], pauli_map[id1], ins)
-                lmt.append(pauli_map[id0])
-                nc.remove(id0)
-            for i3 in ins:
-                if i3[0] == 'swap':
-                    qc.swap(i3[1][0], i3[1][1])
-            pcover = logical_list_physical(pauli_map, lcover)
-            dp = max_dfs_tree(graph, pcover, graph[lmi])
-            dt = tree(graph, dp)
-            for i3 in i2:
-                tree_synthesis1(qc, graph, pauli_map, dt, i3)
-    # print(remain_layers)
-    if remain_layers != []:
-        def __key(cost_matrix, pauli_map, ly):
-            ns = ps2nodes(ly[0][0].ps)
-            ns_len = len(ns)
-            if ns_len == 1:
-                return 0
-            s = 0
-            for i in range(ns_len):
-                for j in range(i+1,ns_len):
-                    s += cost_matrix[pauli_map[ns[i]], pauli_map[ns[j]]]
-            return s
-        while remain_layers != []:
-            # print(remain_layers)
-            remain_layers = sorted(remain_layers, key=partial(__key, graph.C, pauli_map))
-            picked = remain_layers[0]
-            remain_layers = remain_layers[1:]
-            for i2 in picked:
-                lcover = compute_block_cover(i2)
-                itir = compute_block_interior(i2)
-                pcover = logical_list_physical(pauli_map, lcover)
-                ptir = logical_list_physical(pauli_map, itir)
-                lmc = -1
-                lmi = -1
-                lmt = []
-                for i3 in ptir: # pauli_map, pcover
-                    dp = max_dfs_tree(graph, pcover, graph[i3])
-                    if len(dp) > lmc:
-                        lmc = len(dp)
-                        lmi = i3
-                        lmt = dp
-                if len(lmt) == 0:
-                    lmt = [pcover[0]]
-                lcover1 = physical_list_logical(graph, lmt)
-                nc = []
-                for i3 in lcover:
-                    if i3 not in lcover1:
-                        nc.append(i3)
-                # print(nc)
-                ins = []
-                while nc != []:
-                    id0, id1 = find_short_node(graph, pauli_map, nc, lmt)
-                    # print(id0, id1)
-                    connect_node(graph, pauli_map, pauli_map[id0], pauli_map[id1], ins)
-                    # do we need to update lmt?
-                    lmt.append(pauli_map[id0])
-                    nc.remove(id0)
-                for i3 in ins:
-                    if i3[0] == 'swap':
-                        qc.swap(i3[1][0], i3[1][1])
-                pcover = logical_list_physical(pauli_map, lcover)
-                # root is lmi
-                dp = max_dfs_tree(graph, pcover, graph[lmi])
-                # print(dp)
-                dt = tree(graph, dp)
-                for i3 in i2:
-                    tree_synthesis1(qc, graph, pauli_map, dt, i3)
-    return qc
-
-def connected_tree_synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan'):
-    lnq = len(pauli_layers[0][0][0]) # logical qubits
-    if graph == None:
-        G, C = load_graph(arch, dist_comp=True) # G is adj, C is dist
-        graph = pGraph(G, C)
-    if pauli_map == None:
-        pauli_map = dummy_qubit_mapping(graph, lnq)
-    else:
-        add_pauli_map(graph, pauli_map)
-    pnq = len(graph) # physical qubits
-    if qc == None:
-        qc = QuantumCircuit(pnq)
-    for i1 in pauli_layers:
-        for i2 in i1:
-            lcover = compute_block_cover(i2)
-            pcover = logical_list_physical(pauli_map, lcover)
-            lmc = -1
-            lmi = -1
-            lmt = []
-            for i3 in pauli_map:
-                dp = max_dfs_tree(graph, pcover, graph[i3])
-                if len(dp) > lmc:
-                    lmc = len(dp)
-                    lmi = i3
-                    lmt = dp
-            lcover1 = physical_list_logical(graph, lmt)
-            nc = []
-            for i3 in lcover:
-                if i3 not in lcover1:
-                    nc.append(i3)
-            ins = []
-            while nc != []:
-                id0, id1 = find_short_node(graph, pauli_map, nc, dp)
-                connect_node(graph, pauli_map, pauli_map[id0], pauli_map[id1], ins)
-                nc.remove(id0)
-            for i3 in ins:
-                if i3[0] == 'swap':
-                    qc.swap(i3[1][0], i3[1][1])
-            qc = dummy_synthesis([[i2]], pauli_map=pauli_map, graph=graph, qc=qc)
-    return qc
+    scheduler.clear_uncompiled_logical_instructions()
+    return scheduler.qc
 
 def dummy_synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan'):
     lnq = len(pauli_layers[0][0][0]) # logical qubits

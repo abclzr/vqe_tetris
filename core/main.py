@@ -10,7 +10,10 @@ import time, sys, os
 from t_arch import *
 from config import test_scale
 import ipdb
+import random
 from utils.synthesis_broccoli import synthesis
+
+random.seed(1926)
 
 old_cwd = os.getcwd()
 set_cwd()

@@ -23,43 +23,13 @@ class UnionFind:
         return True
 
 
-def kruskal_mst(graph):
-    def sort_edges(edges):
-        return sorted(edges, key=lambda x: x[2])
-
-    num_vertices = len(graph)
-    union_find = UnionFind(num_vertices)
+def kruskal_mst(edges, union_find, distance):
     mst_edges = []
-    edges = []
-
-    # Convert the graph to a list of edges (source, destination, weight)
-    for i in range(num_vertices):
-        for j in range(i + 1, num_vertices):
-            if graph[i][j] != 0:
-                edges.append((i, j, graph[i][j]))
-
-    edges = sort_edges(edges)
 
     for edge in edges:
-        src, dest, weight = edge
+        (src, dest) = edge
         if union_find.union(src, dest):
             mst_edges.append(edge)
 
     return mst_edges
 
-
-# Example usage:
-if __name__ == "__main__":
-    # Example graph represented as an adjacency matrix
-    graph = [
-        [0, 2, 0, 6, 0],
-        [2, 0, 3, 8, 5],
-        [0, 3, 0, 0, 7],
-        [6, 8, 0, 0, 9],
-        [0, 5, 7, 9, 0]
-    ]
-
-    mst_edges = kruskal_mst(graph)
-    total_weight = sum(weight for _, _, weight in mst_edges)
-    print("Minimum Spanning Tree Edges:", mst_edges)
-    print("Total Weight of MST:", total_weight)
