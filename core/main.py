@@ -45,7 +45,7 @@ def PH_Mahattan(parr):
 
 # XX Mahattan device method
 def XX_Mahattan(parr):
-    print('PH passes, Our schedule, Our synthesis, mahattan', flush=True)
+    print('XX passes, Our schedule, Our synthesis, mahattan', flush=True)
     lnq = len(parr[0][0])
     length = lnq // 2 # `length' is a hyperparameter, and can be adjusted for best performance. Here we keep `length' fixed for simplicity.
     coup = load_coupling_map('manhattan')
@@ -53,7 +53,7 @@ def XX_Mahattan(parr):
     a2 = depth_oriented_scheduling(parr, length=length, maxiter=30)
     qc = synthesis(a2, arch='manhattan')
     pnq = qc.num_qubits
-    print('PH, Time costed:', ctime()-t0, flush=True)
+    print('XX, Time costed:', ctime()-t0, flush=True)
     qc1 = transpile(qc, basis_gates=['u3', 'cx'], coupling_map=coup, initial_layout=list(range(pnq)), optimization_level=0)
     t0 = ctime()
     qc2 = transpile(qc, basis_gates=['u3', 'cx'], coupling_map=coup, initial_layout=list(range(pnq)), optimization_level=3)
@@ -72,15 +72,16 @@ if test_scale == 'small':
     k = 1
 else:
     k = 6
+
+print("+++++++++PauliHedral+++++++++++")
 for i in range(0,k):
     print('UCCSD:', moles[i])
     parr = load_oplist('jordan_wigner', moles[i])
-    # print(parr[-19:-18])
     PH_Mahattan(parr)
 
 print("+++++++++Our method+++++++++++")
 for i in range(0,k):
-    print('UCCSD:', orbital[i])
+    print('UCCSD:', moles[i])
     parr = load_oplist('jordan_wigner', moles[i])
     XX_Mahattan(parr)
     
