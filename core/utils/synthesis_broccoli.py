@@ -6,21 +6,6 @@ from utils.scheduler import Scheduler
 import random
 import pdb
 
-def dummy_local_move(qc, graph, pauli_map, src, target):
-    an = graph[src]
-    ml = 10000
-    mn = -1
-    for i in an.adj:
-        if graph.C[i, target] < ml:
-            ml = graph.C[i, target]
-            mn = i
-    if ml == 0: # we find it
-        qc.cx(src, target)
-    else:
-        swap_nodes(pauli_map, graph[src], graph[mn])
-        qc.swap(src, mn)
-        dummy_local_move(qc, graph, pauli_map, mn, target)
-
 from qiskit import QuantumCircuit
 
 def pauli_single_gates(qc, pauli_map, ps, left=True):
@@ -36,58 +21,6 @@ def pauli_single_gates(qc, pauli_map, ps, left=True):
                 qc.u(np.pi/2, 0, np.pi, pauli_map[i])
             elif ps[i] == 'Y':
                 qc.u(-np.pi/2, -np.pi/2, np.pi/2, pauli_map[i])
-
-def tree_synthesis1(qc, graph, pauli_map, ptree, psd):
-    ps = psd.ps
-    psn = ps2nodes(ps)
-    pauli_single_gates(qc, pauli_map, ps, left=True)
-    lfs = ptree.leaf # first in, first out
-    swaps = {}
-    cnum = len(psn) - 1
-    lc = 0
-    while lfs != []:
-        lfs = sorted(lfs, key=lambda x: -x.depth)
-        l = lfs[0]
-        if l.depth == 0:
-            # psd.real may be zero
-            qc.rz(1, l.pid) # qc.rz(2*psd.real+1, l.pid)
-            break
-        # actually, if psn is empty in the middle, we can stop it first
-        # and the choice of root is also important
-        if graph[l.pid].lqb in psn:
-            if graph[l.parent.pid].lqb in psn:
-                qc.cx(l.pid, l.parent.pid)
-                lc += 1
-            else:
-                qc.swap(l.pid, l.parent.pid)
-                swaps[l.parent.pid] = l
-                swap_nodes(pauli_map, graph[l.pid], graph[l.parent.pid])
-        else:
-            pass #lfs.remove(l)
-        if l.parent not in lfs:
-                lfs.append(l.parent)
-        lfs.remove(l)
-        # print(lfs)
-    if lc != cnum:
-        print('lala left:',psd.ps, cnum, lc)
-    lfs = [ptree]
-    rc = 0
-    while lfs != []:
-        l = lfs[0]
-        for i in l.childs:
-            if graph[i.pid].lqb in psn:
-                qc.cx(i.pid, l.pid)
-                rc += 1
-                lfs.append(i)
-        if l.pid in swaps.keys():
-            qc.swap(l.pid, swaps[l.pid].pid)
-            swap_nodes(pauli_map, graph[l.pid], graph[swaps[l.pid].pid])
-            lfs.append(swaps[l.pid])
-        lfs = lfs[1:]
-    if rc != cnum:
-        print('lala left:',psd.ps, cnum, rc)
-    pauli_single_gates(qc, pauli_map, ps, left=False)
-    return qc
 
 def synthesis_initial(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan'):
     assign_time_parameter(pauli_layers, 1)
@@ -168,20 +101,9 @@ def synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan
             mst_edges3 = scheduler.MST(flower_head + stalk, edges=[(f, s) for f in flower_head for s in stalk])
             
             # decide root:
-            # if flower_head exists, pick the node in flower_head closest to stalk
-            # if flower_head doesn't exist, pick a random node in stalk
-            if len(mst_edges3) == 1: # flower_head exists
-                e = mst_edges3[0]
-                find_root = False
-                if level[e[0]] == 1:
-                    root = e[0]
-                else:
-                    root = e[1]
-            elif len(mst_edges3) == 0:
-                assert len(mst_edges1) == 0
-                find_root = True
-                root = stalk[0]
-            scheduler.Tree_init(mst_edges1 + mst_edges2 + mst_edges3, root)
+            # pick a non-I node in stalk
+            find_root = True
+            # scheduler.Tree_init(mst_edges1 + mst_edges2 + mst_edges3, root)
             
             # execution of each pauli string
             for pauli_string in block:
@@ -194,10 +116,10 @@ def synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan
                     scheduler.Tree_init(mst_edges2, root)
                 
                 # the left side of a pauli string circuit
-                scheduler.hardware_lock = False
+                scheduler.enable_cancel = True
                 for i in flower_head + stalk:
                     pauli = pauli_string.ps[i]
-                    if pauli == 'I' or 'Z':
+                    if pauli == 'I' or pauli == 'Z':
                         pass
                     elif pauli == 'X':
                         scheduler.add_instruction('Logical_left_X', i)
@@ -214,14 +136,14 @@ def synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan
                 
                 scheduler.clear_uncompiled_logical_instructions()
                 # the right side of a pauli string circuit
-                scheduler.hardware_lock = True
+                scheduler.enable_cancel = False
                 for node in reversed(scheduler.tree.node_list):
                     if node.parent != -1:
                         scheduler.add_instruction('Logical_CNOT', (node.idx, node.parent))
                 
                 for i in reversed(flower_head + stalk):
                     pauli = pauli_string.ps[i]
-                    if pauli == 'I' or 'Z':
+                    if pauli == 'I' or pauli == 'Z':
                         pass
                     elif pauli == 'X':
                         scheduler.add_instruction('Logical_right_X', i)
@@ -231,6 +153,7 @@ def synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan
                         raise Exception('Illegal pauli operator: ' + pauli)
 
     scheduler.clear_uncompiled_logical_instructions()
+    # pdb.set_trace()
     return scheduler.qc
 
 def dummy_synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan'):

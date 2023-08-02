@@ -73,6 +73,13 @@ if test_scale == 'small':
 else:
     k = 6
 for i in range(0,k):
+    print('UCCSD:', moles[i])
+    parr = load_oplist('jordan_wigner', moles[i])
+    # print(parr[-19:-18])
+    PH_Mahattan(parr)
+
+print("+++++++++Our method+++++++++++")
+for i in range(0,k):
     print('UCCSD:', orbital[i])
     parr = load_oplist('jordan_wigner', moles[i])
     XX_Mahattan(parr)

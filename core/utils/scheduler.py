@@ -22,8 +22,8 @@ class Scheduler:
         self.distance = floyd_warshall(self.graph.G)
         self.tree = None
         
-        # hardware_lock == True means you can only record the instructions not do any qubit routing
-        self.hardware_lock = True
+        # enable_cancel == True means you can only record the instructions not do any qubit routing
+        self.enable_cancel = True
         
         self.instruction_list = []
         self.not_compiled_pointer = 0
@@ -84,18 +84,42 @@ class Scheduler:
         self.not_compiled_pointer = len(self.instruction_list)
     
     def add_instruction(self, instruction, data):
+        if self.enable_cancel == False:
+            self.instruction_list.append((instruction, data))
+            return
+
         # check if there is any cancellation
-        if instruction.startswith('Logical') and len(self.instruction_list) > 0:
+        tmp = len(self.instruction_list) - 1
+        if instruction.startswith('Logical_CNOT'):
+            set_a = set(data)
+        else:
+            set_a = set([data])
+        while tmp >= self.not_compiled_pointer:
+            if self.instruction_list[tmp][0].startswith('Logical_CNOT'):
+                set_b = set(self.instruction_list[tmp][1])
+                if len(set_a & set_b) != 0:
+                    break
+            else:
+                set_b = set([self.instruction_list[tmp][1]])
+                if len(set_a & set_b) != 0:
+                    break
+            tmp = tmp - 1
+        
+        # tmp is the closest logical operators that not compiled and might be cancelled 
+        if tmp >= self.not_compiled_pointer:
             if instruction.startswith('Logical_left_X'):
-                if self.instruction_list[-1][0] == 'Logical_right_X':
-                    self.instruction_list.pop()
+                if self.instruction_list[tmp][0] == 'Logical_right_X':
+                    del self.instruction_list[tmp]
+                    return
             elif instruction.startswith('Logical_left_Y'):
-                if self.instruction_list[-1][0] == 'Logical_right_Y':
-                    self.instruction_list.pop()
+                if self.instruction_list[tmp][0] == 'Logical_right_Y':
+                    del self.instruction_list[tmp]
+                    return
             elif instruction.startswith('Logical_CNOT'):
-                if self.instruction_list[-1][0] == 'Logical_CNOT':
-                    if self.instruction_list[-1][1] == data:
-                        self.instruction_list.pop()
+                if self.instruction_list[tmp][0] == 'Logical_CNOT':
+                    if self.instruction_list[tmp][1] == data:
+                        del self.instruction_list[tmp]
+                        return
             elif instruction.startswith('Logical_RZ'):
                 pass
             elif instruction.startswith('Logical_right_X'):
