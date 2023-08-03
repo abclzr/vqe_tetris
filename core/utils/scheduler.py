@@ -26,15 +26,84 @@ class Scheduler:
         self.enable_cancel = True
         
         self.instruction_list = []
+        self.record = []
         self.not_compiled_pointer = 0
     
     def physical_swap(self, physical_i, physical_j):
+        self.qc.swap(physical_i, physical_j)
         assert self.graph.G[physical_i, physical_j] == 1
         logical_i, logical_j = self.reverse_pauli_map[physical_i], self.reverse_pauli_map[physical_j]
         self.pauli_map[logical_i], self.pauli_map[logical_j] = self.pauli_map[logical_j], self.pauli_map[logical_i]
         self.reverse_pauli_map[physical_i], self.reverse_pauli_map[physical_j] = \
             self.reverse_pauli_map[physical_j], self.reverse_pauli_map[physical_i]
     
+    def find_centor(self, nodes):
+        centor = -1
+        min_total_distance = 0x7777777
+        for c in range(len(self.reverse_pauli_map)):
+            total_distance = 0
+            for n in nodes:
+                total_distance = total_distance + self.distance[self.pauli_map[n]][c]
+            if total_distance < min_total_distance:
+                min_total_distance = total_distance
+                centor = c
+        return centor
+    
+    def gather_root_tree(self, nodes, centor):
+        close_to_far = sorted(nodes, key=lambda n: self.distance[self.pauli_map[n]][centor])
+        connected_component = []
+        edges = []
+        for n in close_to_far:
+            min_dis = 0x7777777
+            closest_dest = -1
+            for dest in connected_component + [centor]:
+                if self.distance[self.pauli_map[n]][dest] < min_dis:
+                    min_dis = self.distance[self.pauli_map[n]][dest]
+                    closest_dest = dest
+            path = self.shortest_path(self.pauli_map[n], closest_dest)
+            for edge in path[:-1]:
+                self.physical_swap(edge[0], edge[1])
+            
+            if len(path) == 0:
+                # the node sits on the centor
+                pass
+            elif self.reverse_pauli_map[path[-1][1]] == -1:
+                # the node doesn't sit on the centor and centor is empty
+                assert path[-1][1] == centor
+                self.physical_swap(path[-1][0], path[-1][1])
+            else:
+                edges.append((n, self.reverse_pauli_map[path[-1][1]]))
+            # now n is attached to the connected component
+            connected_component.append(self.pauli_map[n])
+        return connected_component, edges
+    
+    def gather_leaf_tree(self, leaf_nodes, connected_component, n_paulistring):
+        leaf_nodes = sorted(leaf_nodes, key=lambda leaf: min([self.distance[self.pauli_map[leaf]][c] for c in connected_component]))
+        connected_leaf_physical = []
+        edges = []
+        for leaf in leaf_nodes:
+            min_dis = 0x7777777
+            closest_dest = -1
+            for dest in connected_component:
+                if (self.distance[self.pauli_map[leaf]][dest] - 1) * 3 + 2 * n_paulistring < min_dis:
+                    min_dis = (self.distance[self.pauli_map[leaf]][dest] - 1) * 3 + 2 * n_paulistring
+                    closest_dest = dest
+            for dest in connected_leaf_physical:
+                if (self.distance[self.pauli_map[leaf]][dest] - 1) * 3 + 2 < min_dis:
+                    min_dis = (self.distance[self.pauli_map[leaf]][dest] - 1) * 3 + 2
+                    closest_dest = dest
+            
+            path = self.shortest_path(self.pauli_map[leaf], closest_dest)
+            for edge in path[:-1]:
+                self.physical_swap(edge[0], edge[1])
+            assert path[-1][0] == self.pauli_map[leaf]
+            edges.append((leaf, self.reverse_pauli_map[path[-1][1]]))
+            connected_leaf_physical.append(self.pauli_map[leaf])
+        return edges
+
+
+
+        
     def MST_init(self, n_nodes):
         self.union_find = UnionFind(n_nodes)
     
@@ -42,6 +111,10 @@ class Scheduler:
         edges = sorted(edges, key=lambda x: self.distance[self.pauli_map[x[0]]][self.pauli_map[x[1]]])
         mst_edges = kruskal_mst(edges, self.union_find, self.distance)
         return mst_edges
+    
+    def accept_MST(self, edges):
+        for u, v in edges:
+            self.union_find.union(u, v)
     
     def Tree_init(self, edges, root):
         self.tree = Tree(edges, root)
@@ -62,24 +135,30 @@ class Scheduler:
             (instruction, data) = self.instruction_list[i]
             if instruction.startswith('Logical_left_X'):
                 self.qc.u(np.pi/2, 0, np.pi, self.pauli_map[data])
+                price = 0
             elif instruction.startswith('Logical_left_Y'):
                 self.qc.u(np.pi/2, -np.pi/2, np.pi/2, self.pauli_map[data])
+                price = 0
             elif instruction.startswith('Logical_CNOT'):
                 u, v = data
                 p_u, p_v = self.pauli_map[u], self.pauli_map[v]
                 path = self.shortest_path(p_u, p_v)
                 for u, v in path[:-1]:
                     self.physical_swap(u, v)
-                    self.qc.swap(u, v)
                 self.qc.cx(path[-1][0], path[-1][1])
+                price = 3 * len(path) - 3 + 1
             elif instruction.startswith('Logical_RZ'):
                 self.qc.rz(1, self.pauli_map[data])
+                price = 0
             elif instruction.startswith('Logical_right_X'):
                 self.qc.u(np.pi/2, 0, np.pi, self.pauli_map[data])
+                price = 0
             elif instruction.startswith('Logical_right_Y'):
                 self.qc.u(-np.pi/2, -np.pi/2, np.pi/2, self.pauli_map[data])
+                price = 0
             else:
                 raise Exception('Illegal instruction: ' + instruction)
+            self.record.append((instruction, data, price))
         
         self.not_compiled_pointer = len(self.instruction_list)
     

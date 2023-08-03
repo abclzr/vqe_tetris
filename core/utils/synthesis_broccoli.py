@@ -90,15 +90,20 @@ def synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan
             # 2nd time: connect stalk
             # 3rd time: connect flower_head and stalk by only one edge
             
-            scheduler.MST_init(n_qubits)
+            centor = scheduler.find_centor(stalk)
             
-            mst_edges1 = scheduler.MST(flower_head, edges=[(flower_head[i], flower_head[j])\
-                                                for i in range(len(flower_head))\
-                                                    for j in range(i + 1, len(flower_head))])
-            mst_edges2 = scheduler.MST(stalk, edges=[(stalk[i], stalk[j])\
-                                                for i in range(len(stalk))\
-                                                    for j in range(i + 1, len(stalk))])
-            mst_edges3 = scheduler.MST(flower_head + stalk, edges=[(f, s) for f in flower_head for s in stalk])
+            root_tree_nodes, edges1 = scheduler.gather_root_tree(stalk, centor)
+            
+            edges2 = scheduler.gather_leaf_tree(flower_head, root_tree_nodes, len(block))
+            # scheduler.MST_init(n_qubits)
+            
+            # mst_edges1 = scheduler.MST(flower_head, edges=[(flower_head[i], flower_head[j])\
+            #                                     for i in range(len(flower_head))\
+            #                                         for j in range(i + 1, len(flower_head))])
+            # mst_edges2 = scheduler.MST(stalk, edges=[(stalk[i], stalk[j])\
+            #                                     for i in range(len(stalk))\
+            #                                         for j in range(i + 1, len(stalk))])
+            # mst_edges3 = scheduler.MST(flower_head + stalk, edges=[(f, s) for f in flower_head for s in stalk])
             
             # decide root:
             # pick a non-I node in stalk
@@ -113,7 +118,7 @@ def synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan
                         if pauli_string.ps[i] != 'I':
                             root = i
                             break
-                    scheduler.Tree_init(mst_edges2, root)
+                    scheduler.Tree_init(edges1 + edges2, root)
                 
                 # the left side of a pauli string circuit
                 scheduler.enable_cancel = True
@@ -136,7 +141,7 @@ def synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan
                 
                 scheduler.clear_uncompiled_logical_instructions()
                 # the right side of a pauli string circuit
-                scheduler.enable_cancel = False
+                scheduler.enable_cancel = True
                 for node in reversed(scheduler.tree.node_list):
                     if node.parent != -1:
                         scheduler.add_instruction('Logical_CNOT', (node.idx, node.parent))
@@ -153,8 +158,17 @@ def synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan
                         raise Exception('Illegal pauli operator: ' + pauli)
 
     scheduler.clear_uncompiled_logical_instructions()
-    # pdb.set_trace()
+
+    debug(scheduler)
     return scheduler.qc
+
+def debug(scheduler):
+    # pdb.set_trace()
+    total_cnot = 0
+    for x, y, z in scheduler.record:
+        total_cnot = total_cnot + z
+    print(scheduler.record)
+    print(total_cnot)
 
 def dummy_synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan'):
     lnq = len(pauli_layers[0][0][0]) # logical qubits
