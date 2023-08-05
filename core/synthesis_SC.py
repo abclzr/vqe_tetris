@@ -97,7 +97,7 @@ def tree_synthesis1(qc, graph, pauli_map, ptree, psd):
         lfs.remove(l)
         # print(lfs)
     if lc != cnum:
-        print('lala left:',psd.ps, cnum, lc)
+        pass # print('lala left:',psd.ps, cnum, lc)
     lfs = [ptree]
     rc = 0
     while lfs != []:
@@ -113,7 +113,7 @@ def tree_synthesis1(qc, graph, pauli_map, ptree, psd):
             lfs.append(swaps[l.pid])
         lfs = lfs[1:]
     if rc != cnum:
-        print('lala left:',psd.ps, cnum, rc)
+        pass #print('lala left:',psd.ps, cnum, rc)
     pauli_single_gates(qc, pauli_map, ps, left=False)
     return qc
 

@@ -14,7 +14,7 @@ mapper = JordanWignerMapper()
 
 # driver = PySCFDriver(atom="H 0 0 0; H 0 0 0.735", basis="sto-3g")
 # driver = PySCFDriver(atom="B 0 0 0; H 0 1 1; H 1 0 1; H 1 1 0", basis="sto-3g")
-driver = PySCFDriver(atom="Li .0 .0 .0; H .0 .0 1.0", basis='sto3g')
+driver = PySCFDriver(atom="Li .0 .0 .0; Cl .0 .0 -1.5", basis='sto3g')
 problem = driver.run()
 
 
@@ -37,5 +37,5 @@ for pauli_list in ansatz._operators:
     block = [pauliString(ps) for ps in block]
     pauli_blocks.append(block)
 
-with open('data/jordan_wigner/LiH_UCCSD.pickle', 'wb') as f:
+with open('data/jordan_wigner/LiCl_UCCSD.pickle', 'wb') as f:
     pickle.dump(pauli_blocks, f)
