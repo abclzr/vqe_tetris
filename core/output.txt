@@ -58,3 +58,5 @@ Qiskit L3, Time costed: 28692.56940793991
 UCCSD: CO2
 XX passes, Our schedule, Our synthesis, mahattan
 XX, Time costed: 21.95845913887024
+CNOT: 1180463, Single: 132020, Total: 1312483, Depth: 490434
+Qiskit L3, Time costed: 90425.64913511276
