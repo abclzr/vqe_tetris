@@ -1,62 +1,39 @@
 +++++++++PauliHedral+++++++++++
 UCCSD: LiH
 PH passes, Our schedule, Our synthesis, mahattan
-PH, Time costed: 0.5980730056762695
+PH, Time costed: 0.5752472877502441
 CNOT: 7004, Single: 3820, Total: 10824, Depth: 8043
-Qiskit L3, Time costed: 27.862019062042236
+Qiskit L3, Time costed: 27.59720015525818
 UCCSD: BeH2
 PH passes, Our schedule, Our synthesis, mahattan
-PH, Time costed: 1.136167049407959
+PH, Time costed: 1.2184669971466064
 CNOT: 16284, Single: 9595, Total: 25879, Depth: 18721
-Qiskit L3, Time costed: 56.17595720291138
+Qiskit L3, Time costed: 59.54609704017639
 UCCSD: CH4
 PH passes, Our schedule, Our synthesis, mahattan
-PH, Time costed: 3.658220052719116
+PH, Time costed: 4.11548113822937
 CNOT: 48156, Single: 27937, Total: 76093, Depth: 52236
-Qiskit L3, Time costed: 366.27070474624634
+Qiskit L3, Time costed: 427.64454197883606
 UCCSD: MgH
 PH passes, Our schedule, Our synthesis, mahattan
-PH, Time costed: 9.554900884628296
+PH, Time costed: 8.864139080047607
 CNOT: 100494, Single: 56179, Total: 156673, Depth: 101935
-Qiskit L3, Time costed: 1125.5678079128265
+Qiskit L3, Time costed: 1142.536822795868
 UCCSD: LiCl
 PH passes, Our schedule, Our synthesis, mahattan
-PH, Time costed: 22.484174966812134
+PH, Time costed: 25.478682041168213
 CNOT: 227748, Single: 114513, Total: 342261, Depth: 236137
-Qiskit L3, Time costed: 2230.6262788772583
+Qiskit L3, Time costed: 2245.9450607299805
 UCCSD: CO2
 PH passes, Our schedule, Our synthesis, mahattan
-PH, Time costed: 34.340944051742554
+PH, Time costed: 25.709655046463013
 CNOT: 297972, Single: 140000, Total: 437972, Depth: 310086
-Qiskit L3, Time costed: 3296.0531871318817
+Qiskit L3, Time costed: 5921.880182027817
 +++++++++Our method+++++++++++
 UCCSD: LiH
 XX passes, Our schedule, Our synthesis, mahattan
-XX, Time costed: 0.3847317695617676
-CNOT: 4286, Single: 3584, Total: 7870, Depth: 4828
-Qiskit L3, Time costed: 7.742044925689697
+XX, Time costed: 0.5197889804840088
+CNOT: 6233, Single: 4349, Total: 10582, Depth: 6984
+Qiskit L3, Time costed: 17.82852077484131
 UCCSD: BeH2
 XX passes, Our schedule, Our synthesis, mahattan
-XX, Time costed: 0.7098779678344727
-CNOT: 10452, Single: 8278, Total: 18730, Depth: 11011
-Qiskit L3, Time costed: 15.874659061431885
-UCCSD: CH4
-XX passes, Our schedule, Our synthesis, mahattan
-XX, Time costed: 2.7551751136779785
-CNOT: 124776, Single: 26843, Total: 151619, Depth: 72610
-Qiskit L3, Time costed: 528.9391810894012
-UCCSD: MgH
-XX passes, Our schedule, Our synthesis, mahattan
-XX, Time costed: 3.9479618072509766
-CNOT: 53394, Single: 49326, Total: 102720, Depth: 54691
-Qiskit L3, Time costed: 964.1689758300781
-UCCSD: LiCl
-XX passes, Our schedule, Our synthesis, mahattan
-XX, Time costed: 15.493479013442993
-CNOT: 942763, Single: 111186, Total: 1053949, Depth: 406525
-Qiskit L3, Time costed: 28692.56940793991
-UCCSD: CO2
-XX passes, Our schedule, Our synthesis, mahattan
-XX, Time costed: 21.95845913887024
-CNOT: 1180463, Single: 132020, Total: 1312483, Depth: 490434
-Qiskit L3, Time costed: 90425.64913511276
