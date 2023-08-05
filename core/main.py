@@ -77,12 +77,15 @@ print("+++++++++PauliHedral+++++++++++")
 for i in range(0,k):
     print('UCCSD:', moles[i])
     parr = load_oplist('jordan_wigner', moles[i])
+    # print(parr[-19:-17])
+    # PH_Mahattan(parr[-19:-17])
     PH_Mahattan(parr)
 
 print("+++++++++Our method+++++++++++")
 for i in range(0,k):
     print('UCCSD:', moles[i])
     parr = load_oplist('jordan_wigner', moles[i])
+    # XX_Mahattan(parr[-19:-17])
     XX_Mahattan(parr)
     
 exit()

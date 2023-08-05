@@ -90,15 +90,20 @@ def synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan
             # 2nd time: connect stalk
             # 3rd time: connect flower_head and stalk by only one edge
             
-            scheduler.MST_init(n_qubits)
+            centor = scheduler.find_centor(stalk)
             
-            mst_edges1 = scheduler.MST(flower_head, edges=[(flower_head[i], flower_head[j])\
-                                                for i in range(len(flower_head))\
-                                                    for j in range(i + 1, len(flower_head))])
-            mst_edges2 = scheduler.MST(stalk, edges=[(stalk[i], stalk[j])\
-                                                for i in range(len(stalk))\
-                                                    for j in range(i + 1, len(stalk))])
-            mst_edges3 = scheduler.MST(flower_head + stalk, edges=[(f, s) for f in flower_head for s in stalk])
+            root_tree_nodes, edges1 = scheduler.gather_root_tree(stalk, centor)
+            
+            edges2 = scheduler.gather_leaf_tree(flower_head, root_tree_nodes, len(block))
+            # scheduler.MST_init(n_qubits)
+            
+            # mst_edges1 = scheduler.MST(flower_head, edges=[(flower_head[i], flower_head[j])\
+            #                                     for i in range(len(flower_head))\
+            #                                         for j in range(i + 1, len(flower_head))])
+            # mst_edges2 = scheduler.MST(stalk, edges=[(stalk[i], stalk[j])\
+            #                                     for i in range(len(stalk))\
+            #                                         for j in range(i + 1, len(stalk))])
+            # mst_edges3 = scheduler.MST(flower_head + stalk, edges=[(f, s) for f in flower_head for s in stalk])
             
             # decide root:
             # pick a non-I node in stalk
@@ -113,7 +118,7 @@ def synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan
                         if pauli_string.ps[i] != 'I':
                             root = i
                             break
-                    scheduler.Tree_init(mst_edges2, root)
+                    scheduler.Tree_init(edges1 + edges2, root)
                 
                 # the left side of a pauli string circuit
                 scheduler.enable_cancel = True
@@ -136,7 +141,7 @@ def synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan
                 
                 scheduler.clear_uncompiled_logical_instructions()
                 # the right side of a pauli string circuit
-                scheduler.enable_cancel = False
+                scheduler.enable_cancel = True
                 for node in reversed(scheduler.tree.node_list):
                     if node.parent != -1:
                         scheduler.add_instruction('Logical_CNOT', (node.idx, node.parent))
@@ -151,67 +156,18 @@ def synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan
                         scheduler.add_instruction('Logical_right_Y', i)
                     else:
                         raise Exception('Illegal pauli operator: ' + pauli)
+        
+        # print(scheduler.pauli_map)
+        scheduler.clear_uncompiled_logical_instructions()
 
-    scheduler.clear_uncompiled_logical_instructions()
-    # pdb.set_trace()
+    # debug(scheduler)
     return scheduler.qc
 
-def dummy_synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan'):
-    lnq = len(pauli_layers[0][0][0]) # logical qubits
-    if graph == None:
-        G, C = load_graph(arch, dist_comp=True) # G is adj, C is dist
-        graph = pGraph(G, C)
-    if pauli_map == None:
-        pauli_map = dummy_qubit_mapping(graph, lnq)
-    else:
-        add_pauli_map(graph, pauli_map)
-    pnq = len(graph) # physical qubits
-    if qc == None:
-        qc = QuantumCircuit(pnq)
-    for i1 in pauli_layers: # i1 is layer of blocks
-        for i2 in i1: # i2 is block of pauli strings
-            for i3 in i2:  # i3 is pauli string
-                cns = ps2nodes(i3.ps)
-                pauli_single_gates(qc, pauli_map, i3.ps, left=True)
-                # for i in cns:
-                #     if i3.ps[i] == 'X':
-                #         qc.u(np.pi/2, 0, np.pi, pauli_map[i])
-                #         # qc.h(pauli_map[i])
-                #     elif i3.ps[i] == 'Y':
-                #         qc.u(np.pi/2, -np.pi/2, np.pi/2, pauli_map[i])
-                for i4 in range(len(cns)-1):
-                    dummy_local_move(qc, graph, pauli_map, pauli_map[cns[i4]], pauli_map[cns[i4+1]])
-                if len(cns) >= 1:
-                    qc.rz(i3.real, pauli_map[cns[-1]])
-                for i4 in range(len(cns)-1, 0, -1):
-                    dummy_local_move(qc, graph, pauli_map, pauli_map[cns[i4-1]], pauli_map[cns[i4]])
-                pauli_single_gates(qc, pauli_map, i3.ps, left=False)
-                # for i in cns:
-                #     if i3.ps[i] == 'X':
-                #         # qc.h(pauli_map[i])
-                #         qc.u(np.pi/2, 0, np.pi, pauli_map[i])
-                #     elif i3.ps[i] == 'Y':
-                #         # Y = 1/sqrt{2} [[1, i],[i, 1]]
-                #         qc.u(-np.pi/2, -np.pi/2, np.pi/2, pauli_map[i])
-    return qc
+def debug(scheduler):
+    # pdb.set_trace()
+    total_cnot = 0
+    for x, y, z in scheduler.record:
+        total_cnot = total_cnot + z
+    print(scheduler.record)
+    print(total_cnot)
 
-def qiskit_synthesis(ps_layers, coupling_map=None, arch='manhattan', initial_layout=None, time_parameter=1):
-    from qiskit.aqua.operators.legacy import evolution_instruction
-    from qiskit.quantum_info import Pauli
-    from qiskit import transpile
-    # in evolution_instruction, 1.0 means \pi, so, we need to assign time parameter other than 1.0
-    # in assign_time_parameter, we assign time_parameter/3.14 to each pauli string.
-    # assign_time_parameter(ps_layers, 1)
-    nq = len(ps_layers[0][0][0])
-    qc = QuantumCircuit(nq)
-    # psl = []
-    for i in ps_layers:
-        for j in i:
-            for k in j:
-                qc.append(evolution_instruction([[1, Pauli.from_label(k.ps)]], 1, 1), qc.qubits)
-    if coupling_map == None:
-        coupling_map = load_coupling_map(arch)
-    if initial_layout != None:
-        return transpile(qc, basis_gates=['u', 'cx'], initial_layout=initial_layout, coupling_map=coupling_map, optimization_level=0)
-    else:
-        return transpile(qc, basis_gates=['u', 'cx'], coupling_map=coupling_map, optimization_level=0)

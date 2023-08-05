@@ -1,0 +1,12 @@
++++++++++PauliHedral+++++++++++
+UCCSD: LiH
+PH passes, Our schedule, Our synthesis, mahattan
+PH, Time costed: 0.35820746421813965
+CNOT: 7004, Single: 3820, Total: 10824, Depth: 8043
+Qiskit L3, Time costed: 11.482688665390015
++++++++++Our method+++++++++++
+UCCSD: LiH
+XX passes, Our schedule, Our synthesis, mahattan
+XX, Time costed: 0.27553486824035645
+CNOT: 6233, Single: 4349, Total: 10582, Depth: 6984
+Qiskit L3, Time costed: 6.665775299072266
