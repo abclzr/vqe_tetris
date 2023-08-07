@@ -1,12 +1,16 @@
 +++++++++PauliHedral+++++++++++
 UCCSD: LiH
+[[YZZZZYIXZZYI, XZZZZYIYZZYI, XZZZZXIXZZYI, YZZZZXIYZZYI, XZZZZYIXZZXI, YZZZZYIYZZXI, YZZZZXIXZZXI, XZZZZXIYZZXI]]
 PH passes, Our schedule, Our synthesis, mahattan
-PH, Time costed: 0.35820746421813965
-CNOT: 7004, Single: 3820, Total: 10824, Depth: 8043
-Qiskit L3, Time costed: 11.482688665390015
+PH, Time costed: 0.07511639595031738
+CNOT: 131, Single: 44, Total: 175, Depth: 138
+Qiskit L3, Time costed: 0.20301604270935059
 +++++++++Our method+++++++++++
 UCCSD: LiH
-XX passes, Our schedule, Our synthesis, mahattan
-XX, Time costed: 0.27553486824035645
-CNOT: 6233, Single: 4349, Total: 10582, Depth: 6984
-Qiskit L3, Time costed: 6.665775299072266
+Tetris passes, Our schedule, Our synthesis, mahattan
+[('Logical_left_Y', 0, 0), ('Logical_left_Y', 5, 0), ('Logical_left_X', 7, 0), ('Logical_left_Y', 10, 0), ('Logical_RZ', 0, 0), ('Logical_right_X', 7, 0), ('Logical_right_Y', 0, 0), ('Logical_left_X', 0, 0), ('Logical_left_Y', 7, 0), ('Logical_RZ', 0, 0), ('Logical_right_Y', 7, 0), ('Logical_right_Y', 5, 0), ('Logical_left_X', 5, 0), ('Logical_left_X', 7, 0), ('Logical_RZ', 0, 0), ('Logical_right_X', 7, 0), ('Logical_right_X', 0, 0), ('Logical_left_Y', 0, 0), ('Logical_left_Y', 7, 0), ('Logical_RZ', 0, 0), ('Logical_right_Y', 10, 0), ('Logical_right_Y', 7, 0), ('Logical_right_X', 5, 0), ('Logical_right_Y', 0, 0), ('Logical_left_X', 0, 0), ('Logical_left_Y', 5, 0), ('Logical_left_X', 7, 0), ('Logical_left_X', 10, 0), ('Logical_RZ', 0, 0), ('Logical_right_X', 7, 0), ('Logical_right_X', 0, 0), ('Logical_left_Y', 0, 0), ('Logical_left_Y', 7, 0), ('Logical_RZ', 0, 0), ('Logical_right_Y', 7, 0), ('Logical_right_Y', 5, 0), ('Logical_left_X', 5, 0), ('Logical_left_X', 7, 0), ('Logical_RZ', 0, 0), ('Logical_right_X', 7, 0), ('Logical_right_Y', 0, 0), ('Logical_left_X', 0, 0), ('Logical_left_Y', 7, 0), ('Logical_RZ', 0, 0), ('Logical_right_X', 10, 0), ('Logical_right_Y', 7, 0), ('Logical_right_X', 5, 0), ('Logical_right_X', 0, 0)]
+0
+Tetris, Time costed: 0.09914469718933105
+CNOT: 81, Single: 10, Total: 91, Depth: 40
+Qiskit L3, Time costed: 0.043509721755981445
+{'IR_total': 72, 'IR_remain': 48, 'IR_cancel_ratio': 0.3333333333333333}

@@ -41,8 +41,27 @@ def synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan
     pauli_map, graph, qc = synthesis_initial(pauli_layers, pauli_map, graph, qc, arch)
     scheduler = Scheduler(pauli_map, graph, qc)
     n_qubits = len(pauli_layers[0][0][0].ps)
+    rdy_for_bridge = [0 for i in range(n_qubits)]
+    block_cnt = 0
     for blocks in pauli_layers:
         for block in blocks:
+            block_cnt = block_cnt + 1
+            for pauli_string in block:
+                for wire, pauli_op in enumerate(pauli_string.ps):
+                    if pauli_op == 'X' or pauli_op == 'Y' or pauli_op == 'Z':
+                        rdy_for_bridge[wire] = block_cnt
+    # print(block_cnt)
+    # print(rdy_for_bridge)
+    block_cnt = 0
+    for blocks in pauli_layers:
+        for block in blocks:
+            block_cnt = block_cnt + 1
+            # bridgable == True means the data qubit is already measured and can be treat like an ancillary qubit
+            for wire, r in enumerate(rdy_for_bridge):
+                if block_cnt > r:
+                    scheduler.notify_ancilla(wire)
+                    # print(block_cnt)
+            
             level = [-1 for i in range(n_qubits)]
             prior = ['' for i in range(n_qubits)]
             # level 0: always I
@@ -93,7 +112,7 @@ def synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan
             centor = scheduler.find_centor(stalk)
             
             root_tree_nodes, edges1 = scheduler.gather_root_tree(stalk, centor)
-            edges2 = scheduler.gather_leaf_tree(flower_head, root_tree_nodes, len(block))
+            edges2 = scheduler.gather_leaf_tree(flower_head, root_tree_nodes, len(block), use_bridge)
             # scheduler.MST_init(n_qubits)
             
             # mst_edges1 = scheduler.MST(flower_head, edges=[(flower_head[i], flower_head[j])\
@@ -160,7 +179,16 @@ def synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan
         scheduler.clear_uncompiled_logical_instructions()
 
     # debug(scheduler)
-    return scheduler.qc
+    
+    return scheduler.qc, metrics(scheduler, n_qubits)
+
+def metrics(scheduler, n_qubits):
+    return {
+        'n_qubits': n_qubits,
+        'IR_total': scheduler.total_logical_instruction,
+        'IR_remain': len(scheduler.instruction_list),
+        'IR_cancel_ratio': (scheduler.total_logical_instruction - len(scheduler.instruction_list)) / scheduler.total_logical_instruction
+    }
 
 def debug(scheduler):
     # pdb.set_trace()
@@ -169,4 +197,5 @@ def debug(scheduler):
         total_cnot = total_cnot + z
     print(scheduler.record)
     print(total_cnot)
+    print(scheduler.instruction_list)
 

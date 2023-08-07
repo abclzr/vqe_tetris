@@ -44,23 +44,24 @@ def PH_Mahattan(parr):
     print('Qiskit L3, Time costed:', ctime()-t0, flush=True)
 
 
-# XX Mahattan device method
-def XX_Mahattan(parr, use_bridge):
-    print('XX passes, Our schedule, Our synthesis, mahattan', flush=True)
+# Tetris Mahattan device method
+def Tetris_Mahattan(parr, use_bridge):
+    print('Tetris passes, Our schedule, Our synthesis, mahattan', flush=True)
     lnq = len(parr[0][0])
     length = lnq // 2 # `length' is a hyperparameter, and can be adjusted for best performance. Here we keep `length' fixed for simplicity.
     coup = load_coupling_map('manhattan')
     t0 = ctime()
     a2 = gate_count_oriented_scheduling(parr)#, length=length, maxiter=30)
     # a2 = [[block] for block in parr]
-    qc = synthesis(a2, arch='manhattan', use_bridge=use_bridge)
+    qc, metrics = synthesis(a2, arch='manhattan', use_bridge=use_bridge)
     pnq = qc.num_qubits
-    print('XX, Time costed:', ctime()-t0, flush=True)
+    print('Tetris, Time costed:', ctime()-t0, flush=True)
     qc1 = transpile(qc, basis_gates=['u3', 'cx'], coupling_map=coup, initial_layout=list(range(pnq)), optimization_level=0)
     t0 = ctime()
     qc2 = transpile(qc, basis_gates=['u3', 'cx'], coupling_map=coup, initial_layout=list(range(pnq)), optimization_level=3)
     print_qc(qc2)
     print('Qiskit L3, Time costed:', ctime()-t0, flush=True)
+    print(metrics)
 
 
 
@@ -76,18 +77,24 @@ else:
     k = 6
 
 print("+++++++++PauliHedral+++++++++++")
-for i in range(k-1,k):
+for i in range(0,k):
     print('UCCSD:', moles[i])
     parr = load_oplist('jordan_wigner', moles[i])
-    # print(parr[-19:-17])
-    # PH_Mahattan(parr[-19:-17])
+    # print(parr[-19:-18])
+    # PH_Mahattan(parr[-19:-18])
     PH_Mahattan(parr)
 
 print("+++++++++Our method+++++++++++")
-for i in range(k-1,k):
+for i in range(0,k):
     print('UCCSD:', moles[i])
     parr = load_oplist('jordan_wigner', moles[i])
-    # XX_Mahattan(parr[-19:-17])
-    XX_Mahattan(parr, use_bridge=False)
+    # Tetris_Mahattan(parr[-19:-18], use_bridge=False)
+    Tetris_Mahattan(parr, use_bridge=False)
+# print("+++++++++Our method(with bridge)+++++++++++")
+# for i in range(k-1,k):
+#     print('UCCSD:', moles[i])
+#     parr = load_oplist('jordan_wigner', moles[i])
+#     # Tetris_Mahattan(parr[-19:-18], use_bridge=False)
+#     Tetris_Mahattan(parr, use_bridge=True)
     
 exit()

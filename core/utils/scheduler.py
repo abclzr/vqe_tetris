@@ -14,6 +14,10 @@ class Scheduler:
         self.qc = qc
         
         self.reverse_pauli_map = [-1 for i in self.graph.data]
+        self.is_ancilla = [True for i in self.graph.data]
+        for p_q in pauli_map:
+            self.is_ancilla[p_q] = False
+        
         for i, j in enumerate(self.pauli_map):
             # logical qubit i mapped to physical qubit j
             self.reverse_pauli_map[j] = i
@@ -31,6 +35,10 @@ class Scheduler:
         self.total_logical_instruction = 0
         self.canceled_logical_instruction = 0
     
+    def notify_ancilla(self, logical_i):
+        physical_i = self.pauli_map[logical_i]
+        self.is_ancilla[physical_i] = True
+    
     def physical_swap(self, physical_i, physical_j):
         self.qc.swap(physical_i, physical_j)
         assert self.graph.G[physical_i, physical_j] == 1
@@ -41,6 +49,8 @@ class Scheduler:
                 self.pauli_map[logical_j] = physical_i
         self.reverse_pauli_map[physical_i], self.reverse_pauli_map[physical_j] = \
             self.reverse_pauli_map[physical_j], self.reverse_pauli_map[physical_i]
+        self.is_ancilla[physical_i], self.is_ancilla[physical_j] = \
+            self.is_ancilla[physical_j], self.is_ancilla[physical_i]
         return
     
     def find_centor(self, nodes):
@@ -73,7 +83,7 @@ class Scheduler:
             if len(path) == 0:
                 # the node sits on the centor
                 pass
-            elif not self.reverse_pauli_map[path[-1][1]] in [nodes]:
+            elif not self.reverse_pauli_map[path[-1][1]] in nodes:
                 # the node doesn't sit on the centor and centor is empty
                 assert path[-1][1] == centor
                 self.physical_swap(path[-1][0], path[-1][1])
@@ -83,7 +93,7 @@ class Scheduler:
             connected_component.append(self.pauli_map[n])
         return connected_component, edges
     
-    def gather_leaf_tree(self, leaf_nodes, connected_component, n_paulistring):
+    def gather_leaf_tree(self, leaf_nodes, connected_component, n_paulistring, use_bridge):
         leaf_nodes = sorted(leaf_nodes, key=lambda leaf: min([self.distance[self.pauli_map[leaf]][c] for c in connected_component]))
         connected_leaf_physical = []
         edges = []
@@ -100,14 +110,34 @@ class Scheduler:
                     closest_dest = dest
             
             path = self.shortest_path(self.pauli_map[leaf], closest_dest)
-            for edge in path[:-1]:
-                if not edge[1] in connected_component + connected_leaf_physical:
-                    self.physical_swap(edge[0], edge[1])
-                else:
-                    closest_dest = edge[1]
-                    break
-            edges.append((leaf, self.reverse_pauli_map[closest_dest]))
+            while len(path) > 0 and path[-1][1] in connected_component + connected_leaf_physical:
+                closest_dest = path.pop()[1]
+            bridge_edges = []
+            if use_bridge:
+                while len(path) > 0 and self.is_ancilla[path[-1][1]]:
+                    bridge_edges.append(path.pop())
+                # print(bridge_edges)
+            # for edge in path[:-1]:
+            #     if not edge[1] in connected_component + connected_leaf_physical:
+            #         self.physical_swap(edge[0], edge[1])
+            #     else:
+            #         closest_dest = edge[1]
+            #         break
+            for edge in path:
+                self.physical_swap(edge[0], edge[1])
+            for edge in reversed(bridge_edges):
+                edges.append((self.reverse_pauli_map[edge[0]], self.reverse_pauli_map[edge[1]]))
+            
+            if bridge_edges == []:
+                edges.append((leaf, self.reverse_pauli_map[closest_dest]))
+            else:
+                edges.append((leaf, self.reverse_pauli_map[bridge_edges[-1][0]]))
+                edges.append((self.reverse_pauli_map[bridge_edges[0][1]], self.reverse_pauli_map[closest_dest]))
+            
             connected_leaf_physical.append(self.pauli_map[leaf])
+            for edge in bridge_edges:
+                connected_leaf_physical.append(edge[0])
+                connected_leaf_physical.append(edge[1])
         return edges
 
     
