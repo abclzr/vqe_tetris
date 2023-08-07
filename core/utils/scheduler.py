@@ -20,7 +20,7 @@ class Scheduler:
         
         # apply floyd_warshall algorithm to calculate the distance
         self.distance = floyd_warshall(self.graph.G)
-        self.tree = None
+        self.tree = Tree([], 0)
         
         # enable_cancel == True means you can only record the instructions not do any qubit routing
         self.enable_cancel = True
@@ -28,14 +28,20 @@ class Scheduler:
         self.instruction_list = []
         self.record = []
         self.not_compiled_pointer = 0
+        self.total_logical_instruction = 0
+        self.canceled_logical_instruction = 0
     
     def physical_swap(self, physical_i, physical_j):
         self.qc.swap(physical_i, physical_j)
         assert self.graph.G[physical_i, physical_j] == 1
         logical_i, logical_j = self.reverse_pauli_map[physical_i], self.reverse_pauli_map[physical_j]
-        self.pauli_map[logical_i], self.pauli_map[logical_j] = self.pauli_map[logical_j], self.pauli_map[logical_i]
+        if logical_i != -1:
+                self.pauli_map[logical_i] = physical_j
+        if logical_j != -1:
+                self.pauli_map[logical_j] = physical_i
         self.reverse_pauli_map[physical_i], self.reverse_pauli_map[physical_j] = \
             self.reverse_pauli_map[physical_j], self.reverse_pauli_map[physical_i]
+        return
     
     def find_centor(self, nodes):
         centor = -1
@@ -67,7 +73,7 @@ class Scheduler:
             if len(path) == 0:
                 # the node sits on the centor
                 pass
-            elif self.reverse_pauli_map[path[-1][1]] == -1:
+            elif not self.reverse_pauli_map[path[-1][1]] in [nodes]:
                 # the node doesn't sit on the centor and centor is empty
                 assert path[-1][1] == centor
                 self.physical_swap(path[-1][0], path[-1][1])
@@ -95,15 +101,16 @@ class Scheduler:
             
             path = self.shortest_path(self.pauli_map[leaf], closest_dest)
             for edge in path[:-1]:
-                self.physical_swap(edge[0], edge[1])
-            assert path[-1][0] == self.pauli_map[leaf]
-            edges.append((leaf, self.reverse_pauli_map[path[-1][1]]))
+                if not edge[1] in connected_component + connected_leaf_physical:
+                    self.physical_swap(edge[0], edge[1])
+                else:
+                    closest_dest = edge[1]
+                    break
+            edges.append((leaf, self.reverse_pauli_map[closest_dest]))
             connected_leaf_physical.append(self.pauli_map[leaf])
         return edges
 
-
-
-        
+    
     def MST_init(self, n_nodes):
         self.union_find = UnionFind(n_nodes)
     
@@ -143,6 +150,8 @@ class Scheduler:
                 u, v = data
                 p_u, p_v = self.pauli_map[u], self.pauli_map[v]
                 path = self.shortest_path(p_u, p_v)
+                if (len(path) > 1):
+                    pdb.set_trace()
                 for u, v in path[:-1]:
                     self.physical_swap(u, v)
                 self.qc.cx(path[-1][0], path[-1][1])
@@ -159,10 +168,12 @@ class Scheduler:
             else:
                 raise Exception('Illegal instruction: ' + instruction)
             self.record.append((instruction, data, price))
+            assert price <= 1
         
         self.not_compiled_pointer = len(self.instruction_list)
     
     def add_instruction(self, instruction, data):
+        self.total_logical_instruction = self.total_logical_instruction + 1
         if self.enable_cancel == False:
             self.instruction_list.append((instruction, data))
             return

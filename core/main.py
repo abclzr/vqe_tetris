@@ -32,7 +32,8 @@ def PH_Mahattan(parr):
     length = lnq // 2 # `length' is a hyperparameter, and can be adjusted for best performance. Here we keep `length' fixed for simplicity.
     coup = load_coupling_map('manhattan')
     t0 = ctime()
-    a2 = depth_oriented_scheduling(parr, length=length, maxiter=30)
+    a2 = gate_count_oriented_scheduling(parr)#, length=length, maxiter=30)
+    # a2 = [[block] for block in parr]
     qc = synthesis_SC.block_opt_SC(a2, arch='manhattan')
     pnq = qc.num_qubits
     print('PH, Time costed:', ctime()-t0, flush=True)
@@ -44,14 +45,15 @@ def PH_Mahattan(parr):
 
 
 # XX Mahattan device method
-def XX_Mahattan(parr):
+def XX_Mahattan(parr, use_bridge):
     print('XX passes, Our schedule, Our synthesis, mahattan', flush=True)
     lnq = len(parr[0][0])
     length = lnq // 2 # `length' is a hyperparameter, and can be adjusted for best performance. Here we keep `length' fixed for simplicity.
     coup = load_coupling_map('manhattan')
     t0 = ctime()
-    a2 = depth_oriented_scheduling(parr, length=length, maxiter=30)
-    qc = synthesis(a2, arch='manhattan')
+    a2 = gate_count_oriented_scheduling(parr)#, length=length, maxiter=30)
+    # a2 = [[block] for block in parr]
+    qc = synthesis(a2, arch='manhattan', use_bridge=use_bridge)
     pnq = qc.num_qubits
     print('XX, Time costed:', ctime()-t0, flush=True)
     qc1 = transpile(qc, basis_gates=['u3', 'cx'], coupling_map=coup, initial_layout=list(range(pnq)), optimization_level=0)
@@ -74,7 +76,7 @@ else:
     k = 6
 
 print("+++++++++PauliHedral+++++++++++")
-for i in range(0,k):
+for i in range(k-1,k):
     print('UCCSD:', moles[i])
     parr = load_oplist('jordan_wigner', moles[i])
     # print(parr[-19:-17])
@@ -82,10 +84,10 @@ for i in range(0,k):
     PH_Mahattan(parr)
 
 print("+++++++++Our method+++++++++++")
-for i in range(0,k):
+for i in range(k-1,k):
     print('UCCSD:', moles[i])
     parr = load_oplist('jordan_wigner', moles[i])
     # XX_Mahattan(parr[-19:-17])
-    XX_Mahattan(parr)
+    XX_Mahattan(parr, use_bridge=False)
     
 exit()
