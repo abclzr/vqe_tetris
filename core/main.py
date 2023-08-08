@@ -12,6 +12,7 @@ from config import test_scale
 import ipdb
 import random
 from utils.synthesis_broccoli import synthesis
+from utils.bridge_friendly_block_scheduling import bridge_friendly_block_scheduling
 
 random.seed(1926)
 
@@ -51,7 +52,7 @@ def Tetris_Mahattan(parr, use_bridge):
     length = lnq // 2 # `length' is a hyperparameter, and can be adjusted for best performance. Here we keep `length' fixed for simplicity.
     coup = load_coupling_map('manhattan')
     t0 = ctime()
-    a2 = gate_count_oriented_scheduling(parr)#, length=length, maxiter=30)
+    a2 = bridge_friendly_block_scheduling(parr)#, length=length, maxiter=30)
     # a2 = [[block] for block in parr]
     qc, metrics = synthesis(a2, arch='manhattan', use_bridge=use_bridge)
     pnq = qc.num_qubits
@@ -72,7 +73,7 @@ def Tetris_Mahattan(parr, use_bridge):
 moles = ['LiH', 'BeH2', 'CH4', 'MgH', 'LiCl', 'CO2']
 orbital = [8, 12, 16, 20, 24, 28]
 if test_scale == 'small':
-    k = 1
+    k = 6
 else:
     k = 6
 
@@ -90,11 +91,11 @@ for i in range(0,k):
     parr = load_oplist('jordan_wigner', moles[i])
     # Tetris_Mahattan(parr[-19:-18], use_bridge=False)
     Tetris_Mahattan(parr, use_bridge=False)
-# print("+++++++++Our method(with bridge)+++++++++++")
-# for i in range(k-1,k):
-#     print('UCCSD:', moles[i])
-#     parr = load_oplist('jordan_wigner', moles[i])
-#     # Tetris_Mahattan(parr[-19:-18], use_bridge=False)
-#     Tetris_Mahattan(parr, use_bridge=True)
+print("+++++++++Our method(with bridge)+++++++++++")
+for i in range(0,k):
+    print('UCCSD:', moles[i])
+    parr = load_oplist('jordan_wigner', moles[i])
+    # Tetris_Mahattan(parr[-19:-18], use_bridge=False)
+    Tetris_Mahattan(parr, use_bridge=True)
     
 exit()

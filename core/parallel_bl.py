@@ -140,7 +140,11 @@ def mutual(ps1, ps2):
             s += 1
     return s
 
+import pdb
+
 def gate_count_oriented_scheduling(parr):
+    if len(parr) == 0:
+        return []
     nq = len(parr[0][0]) # num_qubits
     parr_flat = []
     for i in parr:

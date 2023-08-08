@@ -22,6 +22,17 @@ class Scheduler:
             # logical qubit i mapped to physical qubit j
             self.reverse_pauli_map[j] = i
         
+        logical_qubit_id = len(self.pauli_map)
+        for i in range(len(self.reverse_pauli_map)):
+            if self.reverse_pauli_map[i] == -1:
+                self.reverse_pauli_map[i] = logical_qubit_id
+                logical_qubit_id = logical_qubit_id + 1
+        assert logical_qubit_id == len(self.reverse_pauli_map)
+        
+        self.pauli_map = [0 for i in self.reverse_pauli_map]
+        for i, j in enumerate(self.reverse_pauli_map):
+            self.pauli_map[j] = i
+        
         # apply floyd_warshall algorithm to calculate the distance
         self.distance = floyd_warshall(self.graph.G)
         self.tree = Tree([], 0)
@@ -41,12 +52,10 @@ class Scheduler:
     
     def physical_swap(self, physical_i, physical_j):
         self.qc.swap(physical_i, physical_j)
-        assert self.graph.G[physical_i, physical_j] == 1
+        # assert self.graph.G[physical_i, physical_j] == 1
         logical_i, logical_j = self.reverse_pauli_map[physical_i], self.reverse_pauli_map[physical_j]
-        if logical_i != -1:
-                self.pauli_map[logical_i] = physical_j
-        if logical_j != -1:
-                self.pauli_map[logical_j] = physical_i
+        self.pauli_map[logical_i] = physical_j
+        self.pauli_map[logical_j] = physical_i
         self.reverse_pauli_map[physical_i], self.reverse_pauli_map[physical_j] = \
             self.reverse_pauli_map[physical_j], self.reverse_pauli_map[physical_i]
         self.is_ancilla[physical_i], self.is_ancilla[physical_j] = \
@@ -110,13 +119,19 @@ class Scheduler:
                     closest_dest = dest
             
             path = self.shortest_path(self.pauli_map[leaf], closest_dest)
-            while len(path) > 0 and path[-1][1] in connected_component + connected_leaf_physical:
-                closest_dest = path.pop()[1]
+            assert len(path) > 0
+            tmp = 0
+            while tmp < len(path) and not path[tmp][1] in connected_component + connected_leaf_physical:
+                tmp = tmp + 1
+            closest_dest = path[tmp][1]
+            path = path[:tmp]
+            
             bridge_edges = []
             if use_bridge:
                 while len(path) > 0 and self.is_ancilla[path[-1][1]]:
                     bridge_edges.append(path.pop())
-                # print(bridge_edges)
+                # if bridge_edges != []:
+                #     print(bridge_edges)
             # for edge in path[:-1]:
             #     if not edge[1] in connected_component + connected_leaf_physical:
             #         self.physical_swap(edge[0], edge[1])
@@ -131,7 +146,7 @@ class Scheduler:
             if bridge_edges == []:
                 edges.append((leaf, self.reverse_pauli_map[closest_dest]))
             else:
-                edges.append((leaf, self.reverse_pauli_map[bridge_edges[-1][0]]))
+                # edges.append((leaf, self.reverse_pauli_map[bridge_edges[-1][0]]))
                 edges.append((self.reverse_pauli_map[bridge_edges[0][1]], self.reverse_pauli_map[closest_dest]))
             
             connected_leaf_physical.append(self.pauli_map[leaf])
@@ -184,6 +199,8 @@ class Scheduler:
                     pdb.set_trace()
                 for u, v in path[:-1]:
                     self.physical_swap(u, v)
+                if len(path) == 0:
+                    pdb.set_trace()
                 self.qc.cx(path[-1][0], path[-1][1])
                 price = 3 * len(path) - 3 + 1
             elif instruction.startswith('Logical_RZ'):

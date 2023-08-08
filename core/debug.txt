@@ -1,16 +1,1 @@
-+++++++++PauliHedral+++++++++++
-UCCSD: LiH
-[[YZZZZYIXZZYI, XZZZZYIYZZYI, XZZZZXIXZZYI, YZZZZXIYZZYI, XZZZZYIXZZXI, YZZZZYIYZZXI, YZZZZXIXZZXI, XZZZZXIYZZXI]]
-PH passes, Our schedule, Our synthesis, mahattan
-PH, Time costed: 0.07511639595031738
-CNOT: 131, Single: 44, Total: 175, Depth: 138
-Qiskit L3, Time costed: 0.20301604270935059
-+++++++++Our method+++++++++++
-UCCSD: LiH
-Tetris passes, Our schedule, Our synthesis, mahattan
-[('Logical_left_Y', 0, 0), ('Logical_left_Y', 5, 0), ('Logical_left_X', 7, 0), ('Logical_left_Y', 10, 0), ('Logical_RZ', 0, 0), ('Logical_right_X', 7, 0), ('Logical_right_Y', 0, 0), ('Logical_left_X', 0, 0), ('Logical_left_Y', 7, 0), ('Logical_RZ', 0, 0), ('Logical_right_Y', 7, 0), ('Logical_right_Y', 5, 0), ('Logical_left_X', 5, 0), ('Logical_left_X', 7, 0), ('Logical_RZ', 0, 0), ('Logical_right_X', 7, 0), ('Logical_right_X', 0, 0), ('Logical_left_Y', 0, 0), ('Logical_left_Y', 7, 0), ('Logical_RZ', 0, 0), ('Logical_right_Y', 10, 0), ('Logical_right_Y', 7, 0), ('Logical_right_X', 5, 0), ('Logical_right_Y', 0, 0), ('Logical_left_X', 0, 0), ('Logical_left_Y', 5, 0), ('Logical_left_X', 7, 0), ('Logical_left_X', 10, 0), ('Logical_RZ', 0, 0), ('Logical_right_X', 7, 0), ('Logical_right_X', 0, 0), ('Logical_left_Y', 0, 0), ('Logical_left_Y', 7, 0), ('Logical_RZ', 0, 0), ('Logical_right_Y', 7, 0), ('Logical_right_Y', 5, 0), ('Logical_left_X', 5, 0), ('Logical_left_X', 7, 0), ('Logical_RZ', 0, 0), ('Logical_right_X', 7, 0), ('Logical_right_Y', 0, 0), ('Logical_left_X', 0, 0), ('Logical_left_Y', 7, 0), ('Logical_RZ', 0, 0), ('Logical_right_X', 10, 0), ('Logical_right_Y', 7, 0), ('Logical_right_X', 5, 0), ('Logical_right_X', 0, 0)]
-0
-Tetris, Time costed: 0.09914469718933105
-CNOT: 81, Single: 10, Total: 91, Depth: 40
-Qiskit L3, Time costed: 0.043509721755981445
-{'IR_total': 72, 'IR_remain': 48, 'IR_cancel_ratio': 0.3333333333333333}
+[('Logical_left_Y', 0), ('Logical_left_Y', 4), ('Logical_left_X', 17), ('Logical_left_Y', 23), ('Logical_CNOT', (22, 18)), ('Logical_CNOT', (18, 3)), ('Logical_CNOT', (3, 2)), ('Logical_CNOT', (2, 24)), ('Logical_CNOT', (24, 10)), ('Logical_CNOT', (10, 21)), ('Logical_CNOT', (21, 20)), ('Logical_CNOT', (20, 1)), ('Logical_CNOT', (19, 1)), ('Logical_CNOT', (1, 4)), ('Logical_CNOT', (4, 17)), ('Logical_CNOT', (17, 23)), ('Logical_CNOT', (23, 0)), ('Logical_RZ', 0)]

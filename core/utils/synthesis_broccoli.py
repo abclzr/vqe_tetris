@@ -30,6 +30,7 @@ def synthesis_initial(pauli_layers, pauli_map=None, graph=None, qc=None, arch='m
         graph = pGraph(G, C)
     if pauli_map == None:
         pauli_map = dummy_qubit_mapping(graph, lnq)
+        # pauli_map = [0, 1, 2, 3, 13, 5, 6, 7, 8, 9, 10, 11, 12, 4]
     else:
         add_pauli_map(graph, pauli_map)
     pnq = len(graph) # physical qubits
@@ -50,8 +51,8 @@ def synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan
                 for wire, pauli_op in enumerate(pauli_string.ps):
                     if pauli_op == 'X' or pauli_op == 'Y' or pauli_op == 'Z':
                         rdy_for_bridge[wire] = block_cnt
-    # print(block_cnt)
-    # print(rdy_for_bridge)
+    print(block_cnt)
+    print(rdy_for_bridge)
     block_cnt = 0
     for blocks in pauli_layers:
         for block in blocks:
@@ -110,6 +111,9 @@ def synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan
             # 3rd time: connect flower_head and stalk by only one edge
             
             centor = scheduler.find_centor(stalk)
+            
+            # if block_cnt == 1641:
+            #     pdb.set_trace() # centor==3
             
             root_tree_nodes, edges1 = scheduler.gather_root_tree(stalk, centor)
             edges2 = scheduler.gather_leaf_tree(flower_head, root_tree_nodes, len(block), use_bridge)
