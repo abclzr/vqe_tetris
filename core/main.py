@@ -78,8 +78,8 @@ else:
     k = 6
 
 # mapper = 'jordan_wigner'
-mapper = 'parity'
-# mapper = 'bravyikitaev'
+# mapper = 'parity'
+mapper = 'bravyikitaev'
 
 print("+++++++++PauliHedral+++++++++++")
 for i in range(0,k):
