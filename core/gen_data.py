@@ -8,18 +8,15 @@ import ast
 # import ipdb
 
 # mapper = JordanWignerMapper()
-mapper = ParityMapper()
-# mapper = BravyiKitaevMapper()
-
-# driver = PySCFDriver(atom="H 0 0 0; H 0 0 0.735", basis="sto-3g")
-# driver = PySCFDriver(atom="B 0 0 0; H 0 1 1; H 1 0 1; H 1 1 0", basis="sto-3g")
+# mapper = ParityMapper()
+mapper = BravyiKitaevMapper()
 
 # driver = PySCFDriver(atom="Li .0 .0 .0; H .0 .0 1.3", basis='sto3g')
-driver = PySCFDriver(atom="Be .0 .0 .0; H .0 .0 -0.76; H .0 .0 0.76", basis='sto3g')
-# driver = PySCFDriver(atom="C .0 .0 .0; O .0 .0 1.0; O .0 .0 -1.0", basis='sto3g')
-# driver = PySCFDriver(atom="C .0 .0 .0; O .0 .0 1.0; O .0 .0 -1.0", basis='sto3g')
-# driver = PySCFDriver(atom="C .0 .0 .0; O .0 .0 1.0; O .0 .0 -1.0", basis='sto3g')
-# driver = PySCFDriver(atom="C .0 .0 .0; O .0 .0 1.0; O .0 .0 -1.0", basis='sto3g')
+# driver = PySCFDriver(atom="Be .0 .0 .0; H .0 .0 -0.76; H .0 .0 0.76", basis='sto3g')
+# driver = PySCFDriver(atom="C .0 .0 .0; H .0 .0 1.0; H .0 .0 -1.0; H .0 1.0 .0; H .0 -1.0 .0", basis='sto3g')
+# driver = PySCFDriver(atom="Mg .0 .0 .0; H .0 .0 -1.3; H .0 .0 1.3", basis='sto3g')
+# driver = PySCFDriver(atom="Li .0 .0 .0; Cl .0 .0 -1.5", basis='sto3g')
+driver = PySCFDriver(atom="C .0 .0 .0; O .0 .0 1.0; O .0 .0 -1.0", basis='sto3g')
 
 problem = driver.run()
 
@@ -43,5 +40,5 @@ for pauli_list in ansatz._operators:
     block = [pauliString(ps) for ps in block]
     pauli_blocks.append(block)
 
-with open('data/parity/BeH2_UCCSD.pickle', 'wb') as f:
+with open('data/bravyikitaev/CO2_UCCSD.pickle', 'wb') as f:
     pickle.dump(pauli_blocks, f)
