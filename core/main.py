@@ -77,10 +77,14 @@ if test_scale == 'small':
 else:
     k = 6
 
+# mapper = 'jordan_wigner'
+# mapper = 'parity'
+mapper = 'bravyikitaev'
+
 print("+++++++++PauliHedral+++++++++++")
 for i in range(0,k):
     print('UCCSD:', moles[i])
-    parr = load_oplist('jordan_wigner', moles[i])
+    parr = load_oplist(mapper, moles[i])
     # print(parr[-19:-18])
     # PH_Mahattan(parr[-19:-18])
     PH_Mahattan(parr)
@@ -88,13 +92,13 @@ for i in range(0,k):
 print("+++++++++Our method+++++++++++")
 for i in range(0,k):
     print('UCCSD:', moles[i])
-    parr = load_oplist('jordan_wigner', moles[i])
+    parr = load_oplist(mapper, moles[i])
     # Tetris_Mahattan(parr[-19:-18], use_bridge=False)
     Tetris_Mahattan(parr, use_bridge=False)
 print("+++++++++Our method(with bridge)+++++++++++")
 for i in range(0,k):
     print('UCCSD:', moles[i])
-    parr = load_oplist('jordan_wigner', moles[i])
+    parr = load_oplist(mapper, moles[i])
     # Tetris_Mahattan(parr[-19:-18], use_bridge=False)
     Tetris_Mahattan(parr, use_bridge=True)
     
