@@ -8,7 +8,7 @@ from tools import *
 from arch import *
 import time, sys, os
 from t_arch import *
-from config import test_scale
+from .config import test_scale
 import ipdb
 import random
 from utils.synthesis_broccoli import synthesis
