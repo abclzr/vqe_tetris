@@ -45,12 +45,15 @@ class Scheduler:
         self.not_compiled_pointer = 0
         self.total_logical_instruction = 0
         self.canceled_logical_instruction = 0
+        self.total_swap_cnt = 0
+        self.total_bridge_cnt = 0
     
     def notify_ancilla(self, logical_i):
         physical_i = self.pauli_map[logical_i]
         self.is_ancilla[physical_i] = True
     
     def physical_swap(self, physical_i, physical_j):
+        self.total_swap_cnt = self.total_swap_cnt + 1
         self.qc.swap(physical_i, physical_j)
         # assert self.graph.G[physical_i, physical_j] == 1
         logical_i, logical_j = self.reverse_pauli_map[physical_i], self.reverse_pauli_map[physical_j]
@@ -130,8 +133,9 @@ class Scheduler:
             if use_bridge:
                 while len(path) > 0 and self.is_ancilla[path[-1][1]]:
                     bridge_edges.append(path.pop())
-                # if bridge_edges != []:
-                #     print(bridge_edges)
+                if bridge_edges != []:
+                    # print(bridge_edges)
+                    self.total_bridge_cnt = self.total_bridge_cnt + len(bridge_edges)
             # for edge in path[:-1]:
             #     if not edge[1] in connected_component + connected_leaf_physical:
             #         self.physical_swap(edge[0], edge[1])

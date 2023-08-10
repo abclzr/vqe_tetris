@@ -44,6 +44,11 @@ def synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan
     n_qubits = len(pauli_layers[0][0][0].ps)
     rdy_for_bridge = [0 for i in range(n_qubits)]
     block_cnt = 0
+    
+    l_single_gates_cnt = 0
+    l_cx_cnt = 0
+    ps_cnt = 0
+    
     for blocks in pauli_layers:
         for block in blocks:
             block_cnt = block_cnt + 1
@@ -56,6 +61,7 @@ def synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan
     block_cnt = 0
     for blocks in pauli_layers:
         for block in blocks:
+            ps_cnt = ps_cnt + len(block)
             block_cnt = block_cnt + 1
             # bridgable == True means the data qubit is already measured and can be treat like an ancillary qubit
             for wire, r in enumerate(rdy_for_bridge):
@@ -112,9 +118,10 @@ def synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan
             
             centor = scheduler.find_centor(stalk)
             
-            # if block_cnt == 1641:
-            #     pdb.set_trace() # centor==3
-            
+            if stalk == []:
+                stalk = flower_head[-1:]
+                flower_head = flower_head[:-1]
+                centor = stalk[0]
             root_tree_nodes, edges1 = scheduler.gather_root_tree(stalk, centor)
             edges2 = scheduler.gather_leaf_tree(flower_head, root_tree_nodes, len(block), use_bridge)
             # scheduler.MST_init(n_qubits)
@@ -148,14 +155,20 @@ def synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan
                 scheduler.enable_cancel = True
                 for i in flower_head + stalk:
                     pauli = pauli_string.ps[i]
-                    if pauli == 'I' or pauli == 'Z':
+                    l_cx_cnt = l_cx_cnt + 1
+                    if pauli == 'I':
+                        l_cx_cnt = l_cx_cnt - 1
+                    elif pauli == 'Z':
                         pass
                     elif pauli == 'X':
+                        l_single_gates_cnt = l_single_gates_cnt + 2
                         scheduler.add_instruction('Logical_left_X', i)
                     elif pauli == 'Y':
+                        l_single_gates_cnt = l_single_gates_cnt + 2
                         scheduler.add_instruction('Logical_left_Y', i)
                     else:
                         raise Exception('Illegal pauli operator: ' + pauli)
+                l_cx_cnt = l_cx_cnt - 1
                 
                 scheduler.tree.refresh()
                 
@@ -200,14 +213,20 @@ def synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan
 
     # debug(scheduler)
     
-    return scheduler.qc, metrics(scheduler, n_qubits)
+    return scheduler.qc, metrics(scheduler, n_qubits, ps_cnt, l_cx_cnt, l_single_gates_cnt)
 
-def metrics(scheduler, n_qubits):
+def metrics(scheduler, n_qubits, ps_cnt, l_cx_cnt, l_single_gates_cnt):
     return {
         'n_qubits': n_qubits,
         'IR_total': scheduler.total_logical_instruction,
         'IR_remain': len(scheduler.instruction_list),
-        'IR_cancel_ratio': (scheduler.total_logical_instruction - len(scheduler.instruction_list)) / scheduler.total_logical_instruction
+        'IR_cancel_ratio': (scheduler.total_logical_instruction - len(scheduler.instruction_list)) / scheduler.total_logical_instruction,
+        'total_swap_count': scheduler.total_swap_cnt,
+        'total_bridge_count': scheduler.total_bridge_cnt,
+        'pauli string count': ps_cnt,
+        'original CNOT count': l_cx_cnt,
+        'single gate count without rz': l_single_gates_cnt,
+        'total gate count': ps_cnt + l_cx_cnt + l_single_gates_cnt
     }
 
 def debug(scheduler):
