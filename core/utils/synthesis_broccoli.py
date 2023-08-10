@@ -162,7 +162,7 @@ def synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan
                 save_instructions = []
                 for i in range(len(scheduler.tree.node_list)):
                     node = scheduler.tree.node_list[i]
-                    if pauli_string.ps[node.idx_after_swap] == 'I':
+                    if node.idx_after_swap < n_qubits and pauli_string.ps[node.idx_after_swap] == 'I':
                         continue
                     if node.parent_after_swap != -1:
                         if node.parent_after_swap >= n_qubits or pauli_string.ps[node.parent_after_swap] != 'I':
@@ -171,6 +171,7 @@ def synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan
                             scheduler.add_instruction('Logical_CNOT', (node.idx_after_swap, node.parent_after_swap))
                             save_instructions.append(('Logical_CNOT', (node.idx_after_swap, node.parent_after_swap)))
                         else:
+                            # otherwise, the parent is an 'I' that we need to swap to go through.
                             scheduler.add_instruction('Logical_SWAP', (node.idx_after_swap, node.parent_after_swap))
                             save_instructions.append(('Logical_SWAP', (node.idx_after_swap, node.parent_after_swap)))
                             scheduler.tree.swap_two_nodes(node.parent_after_swap, node.idx_after_swap)

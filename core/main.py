@@ -81,20 +81,20 @@ else:
 # mapper = 'parity'
 mapper = 'bravyikitaev'
 
-print("+++++++++PauliHedral+++++++++++")
-for i in range(2,k):
-    print('UCCSD:', moles[i])
-    parr = load_oplist(mapper, moles[i])
-    # print(parr[-19:-18])
-    # PH_Mahattan(parr[-19:-18])
-    PH_Mahattan(parr)
+# print("+++++++++PauliHedral+++++++++++")
+# for i in range(2,k):
+#     print('UCCSD:', moles[i])
+#     parr = load_oplist(mapper, moles[i])
+#     # print(parr[-19:-18])
+#     # PH_Mahattan(parr[-19:-18])
+#     PH_Mahattan(parr)
 
-print("+++++++++Our method+++++++++++")
-for i in range(2,k):
-    print('UCCSD:', moles[i])
-    parr = load_oplist(mapper, moles[i])
-    # Tetris_Mahattan(parr[-19:-18], use_bridge=False)
-    Tetris_Mahattan(parr, use_bridge=False)
+# print("+++++++++Our method+++++++++++")
+# for i in range(2,k):
+#     print('UCCSD:', moles[i])
+#     parr = load_oplist(mapper, moles[i])
+#     # Tetris_Mahattan(parr[-19:-18], use_bridge=False)
+#     Tetris_Mahattan(parr, use_bridge=False)
 print("+++++++++Our method(with bridge)+++++++++++")
 for i in range(2,k):
     print('UCCSD:', moles[i])
