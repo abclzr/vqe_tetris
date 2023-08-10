@@ -8,7 +8,7 @@ from tools import *
 from arch import *
 import time, sys, os
 from t_arch import *
-from .config import test_scale
+from config import test_scale
 import ipdb
 import random
 from utils.synthesis_broccoli import synthesis
@@ -82,7 +82,7 @@ else:
 mapper = 'bravyikitaev'
 
 print("+++++++++PauliHedral+++++++++++")
-for i in range(0,k):
+for i in range(2,k):
     print('UCCSD:', moles[i])
     parr = load_oplist(mapper, moles[i])
     # print(parr[-19:-18])
@@ -90,13 +90,13 @@ for i in range(0,k):
     PH_Mahattan(parr)
 
 print("+++++++++Our method+++++++++++")
-for i in range(0,k):
+for i in range(2,k):
     print('UCCSD:', moles[i])
     parr = load_oplist(mapper, moles[i])
     # Tetris_Mahattan(parr[-19:-18], use_bridge=False)
     Tetris_Mahattan(parr, use_bridge=False)
 print("+++++++++Our method(with bridge)+++++++++++")
-for i in range(0,k):
+for i in range(2,k):
     print('UCCSD:', moles[i])
     parr = load_oplist(mapper, moles[i])
     # Tetris_Mahattan(parr[-19:-18], use_bridge=False)

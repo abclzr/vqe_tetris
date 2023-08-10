@@ -1,1 +1,1 @@
-[('Logical_left_Y', 0), ('Logical_left_Y', 4), ('Logical_left_X', 17), ('Logical_left_Y', 23), ('Logical_CNOT', (22, 18)), ('Logical_CNOT', (18, 3)), ('Logical_CNOT', (3, 2)), ('Logical_CNOT', (2, 24)), ('Logical_CNOT', (24, 10)), ('Logical_CNOT', (10, 21)), ('Logical_CNOT', (21, 20)), ('Logical_CNOT', (20, 1)), ('Logical_CNOT', (19, 1)), ('Logical_CNOT', (1, 4)), ('Logical_CNOT', (4, 17)), ('Logical_CNOT', (17, 23)), ('Logical_CNOT', (23, 0)), ('Logical_RZ', 0)]
+[(8, 6), (6, 4), (4, 7), (7, 11), (11, 5), (5, 2), (2, 1), (10, 0), (1, 0), (0, -1)]

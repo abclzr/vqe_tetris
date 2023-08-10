@@ -132,10 +132,12 @@ def synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan
             find_root = True
             # scheduler.Tree_init(mst_edges1 + mst_edges2 + mst_edges3, root)
             
+            # print(f'({len(flower_head)}, {len(stalk)})')
+            # print(block)
             # execution of each pauli string
             for pauli_string in block:
                 if find_root == True:
-                    root = None
+                    root = stalk[0]
                     for i in stalk:
                         if pauli_string.ps[i] != 'I':
                             root = i
@@ -155,18 +157,31 @@ def synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan
                     else:
                         raise Exception('Illegal pauli operator: ' + pauli)
                 
-                for node in scheduler.tree.node_list:
-                    if node.parent != -1:
-                        scheduler.add_instruction('Logical_CNOT', (node.idx, node.parent))
+                scheduler.tree.refresh()
+                
+                save_instructions = []
+                for i in range(len(scheduler.tree.node_list)):
+                    node = scheduler.tree.node_list[i]
+                    if pauli_string.ps[node.idx_after_swap] == 'I':
+                        continue
+                    if node.parent_after_swap != -1:
+                        if node.parent_after_swap >= n_qubits or pauli_string.ps[node.parent_after_swap] != 'I':
+                            # node.parent_after_swap >= n_qubits means it's a bridge
+                            # node.parent_after_swap is not an 'I' means we just CX to it.
+                            scheduler.add_instruction('Logical_CNOT', (node.idx_after_swap, node.parent_after_swap))
+                            save_instructions.append(('Logical_CNOT', (node.idx_after_swap, node.parent_after_swap)))
+                        else:
+                            scheduler.add_instruction('Logical_SWAP', (node.idx_after_swap, node.parent_after_swap))
+                            save_instructions.append(('Logical_SWAP', (node.idx_after_swap, node.parent_after_swap)))
+                            scheduler.tree.swap_two_nodes(node.parent_after_swap, node.idx_after_swap)
                     else:
-                        scheduler.add_instruction('Logical_RZ', node.idx)
+                        scheduler.add_instruction('Logical_RZ', node.idx_after_swap)
                 
                 scheduler.clear_uncompiled_logical_instructions()
                 # the right side of a pauli string circuit
                 scheduler.enable_cancel = True
-                for node in reversed(scheduler.tree.node_list):
-                    if node.parent != -1:
-                        scheduler.add_instruction('Logical_CNOT', (node.idx, node.parent))
+                for ir in reversed(save_instructions):
+                    scheduler.add_instruction(ir[0], ir[1])
                 
                 for i in reversed(flower_head + stalk):
                     pauli = pauli_string.ps[i]

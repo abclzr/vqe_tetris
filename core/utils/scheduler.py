@@ -203,6 +203,17 @@ class Scheduler:
                     pdb.set_trace()
                 self.qc.cx(path[-1][0], path[-1][1])
                 price = 3 * len(path) - 3 + 1
+            elif instruction.startswith('Logical_SWAP'):
+                u, v = data
+                p_u, p_v = self.pauli_map[u], self.pauli_map[v]
+                path = self.shortest_path(p_u, p_v)
+                if (len(path) > 1):
+                    pdb.set_trace()
+                for u, v in path:
+                    self.physical_swap(u, v)
+                if len(path) == 0:
+                    pdb.set_trace()
+                price = 3 * len(path)
             elif instruction.startswith('Logical_RZ'):
                 self.qc.rz(1, self.pauli_map[data])
                 price = 0
@@ -215,7 +226,7 @@ class Scheduler:
             else:
                 raise Exception('Illegal instruction: ' + instruction)
             self.record.append((instruction, data, price))
-            assert price <= 1
+            assert price <= 3
         
         self.not_compiled_pointer = len(self.instruction_list)
     
@@ -227,12 +238,12 @@ class Scheduler:
 
         # check if there is any cancellation
         tmp = len(self.instruction_list) - 1
-        if instruction.startswith('Logical_CNOT'):
+        if instruction.startswith('Logical_CNOT') or instruction.startswith('Logical_SWAP'):
             set_a = set(data)
         else:
             set_a = set([data])
         while tmp >= self.not_compiled_pointer:
-            if self.instruction_list[tmp][0].startswith('Logical_CNOT'):
+            if self.instruction_list[tmp][0].startswith('Logical_CNOT') or self.instruction_list[tmp][0].startswith('Logical_SWAP'):
                 set_b = set(self.instruction_list[tmp][1])
                 if len(set_a & set_b) != 0:
                     break
@@ -254,6 +265,11 @@ class Scheduler:
                     return
             elif instruction.startswith('Logical_CNOT'):
                 if self.instruction_list[tmp][0] == 'Logical_CNOT':
+                    if self.instruction_list[tmp][1] == data:
+                        del self.instruction_list[tmp]
+                        return
+            elif instruction.startswith('Logical_SWAP'):
+                if self.instruction_list[tmp][0] == 'Logical_SWAP':
                     if self.instruction_list[tmp][1] == data:
                         del self.instruction_list[tmp]
                         return
