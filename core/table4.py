@@ -1,6 +1,6 @@
 import sys, time, os
 from benchmark.offline import *
-from parallel_bl import *
+from utils.parallel_bl import *
 from qiskit import QuantumCircuit, transpile
 import synthesis_SC
 import synthesis_FT

@@ -1,4 +1,4 @@
-from parallel_bl import mutual, pXOR, parallel_order_size_bl, pDiff, lexi_order_bl
+from utils.parallel_bl import mutual, pXOR, parallel_order_size_bl, pDiff, lexi_order_bl
 from benchmark.mypauli import pauliString
 
 def assign_time_parameter(ps_layers, time_parameter):

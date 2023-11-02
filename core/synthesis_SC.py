@@ -118,7 +118,7 @@ def tree_synthesis1(qc, graph, pauli_map, ptree, psd):
     if rc != cnum:
         pass #print('lala left:',psd.ps, cnum, rc)
     pauli_single_gates(qc, pauli_map, ps, left=False)
-    return qc, cnt_swaps
+    return qc, cnt_swaps, lc
 
 def synthesis_initial(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan'):
     assign_time_parameter(pauli_layers, 1)
@@ -143,6 +143,7 @@ def inter_synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='man
 
 def block_opt_SC(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan'):
     total_swaps = 0
+    total_cx = 0
     pauli_map, graph, qc = synthesis_initial(pauli_layers, pauli_map, graph, qc, arch)
     remain_layers = []
     # print(pauli_layers)
@@ -193,8 +194,9 @@ def block_opt_SC(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhat
             # print(dp)
             dt = tree(graph, dp)
             for i3 in i2:
-                qc, cnt_swaps = tree_synthesis1(qc, graph, pauli_map, dt, i3)
+                qc, cnt_swaps, cnt_cx = tree_synthesis1(qc, graph, pauli_map, dt, i3)
                 total_swaps = total_swaps + cnt_swaps
+                total_cx = total_cx + cnt_cx
         xlist = dp
         move_overhead = len(ins)
         for i2 in i1[1:]:
@@ -254,8 +256,9 @@ def block_opt_SC(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhat
             dp = max_dfs_tree(graph, pcover, graph[lmi])
             dt = tree(graph, dp)
             for i3 in i2:
-                qc, cnt_swaps = tree_synthesis1(qc, graph, pauli_map, dt, i3)
+                qc, cnt_swaps, cnt_cx = tree_synthesis1(qc, graph, pauli_map, dt, i3)
                 total_swaps = total_swaps + cnt_swaps
+                total_cx = total_cx + cnt_cx
     # print(remain_layers)
     if remain_layers != []:
         def __key(cost_matrix, pauli_map, ly):
@@ -312,9 +315,10 @@ def block_opt_SC(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhat
                 # print(dp)
                 dt = tree(graph, dp)
                 for i3 in i2:
-                    qc, cnt_swaps = tree_synthesis1(qc, graph, pauli_map, dt, i3)
+                    qc, cnt_swaps, cnt_cx = tree_synthesis1(qc, graph, pauli_map, dt, i3)
                     total_swaps = total_swaps + cnt_swaps
-    return qc, total_swaps
+                    total_cx = total_cx + cnt_cx
+    return qc, total_swaps, total_cx
 
 def connected_tree_synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan'):
     lnq = len(pauli_layers[0][0][0]) # logical qubits

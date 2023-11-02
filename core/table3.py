@@ -2,7 +2,7 @@ import io, os, sys, time
 import subprocess
 from subprocess import Popen, PIPE
 from benchmark.offline import *
-from parallel_bl import *
+from utils.parallel_bl import *
 from qiskit import QuantumCircuit, transpile
 from synthesis_SC import *
 from synthesis_FT import *

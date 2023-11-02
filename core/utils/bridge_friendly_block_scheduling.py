@@ -1,7 +1,7 @@
 import pdb
 import numpy as np
 from benchmark.mypauli import pauliString
-from parallel_bl import *
+from utils.parallel_bl import *
 
 def bridge_friendly_sort(n_qubits, blocks, level_list, not_sorted_qubits):
     length = len(blocks)
