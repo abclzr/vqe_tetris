@@ -46,6 +46,7 @@ class Scheduler:
         self.total_logical_instruction = 0
         self.canceled_logical_instruction = 0
         self.total_swap_cnt = 0
+        self.total_cx_cnt = 0
         self.total_bridge_cnt = 0
     
     def notify_ancilla(self, logical_i):
@@ -206,6 +207,7 @@ class Scheduler:
                 if len(path) == 0:
                     pdb.set_trace()
                 self.qc.cx(path[-1][0], path[-1][1])
+                self.total_cx_cnt += 1
                 price = 3 * len(path) - 3 + 1
             elif instruction.startswith('Logical_SWAP'):
                 u, v = data

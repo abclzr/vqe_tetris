@@ -155,9 +155,9 @@ def synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan
                 scheduler.enable_cancel = True
                 for i in flower_head + stalk:
                     pauli = pauli_string.ps[i]
-                    l_cx_cnt = l_cx_cnt + 1
+                    l_cx_cnt = l_cx_cnt + 2
                     if pauli == 'I':
-                        l_cx_cnt = l_cx_cnt - 1
+                        l_cx_cnt = l_cx_cnt - 2
                     elif pauli == 'Z':
                         pass
                     elif pauli == 'X':
@@ -168,7 +168,7 @@ def synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan
                         scheduler.add_instruction('Logical_left_Y', i)
                     else:
                         raise Exception('Illegal pauli operator: ' + pauli)
-                l_cx_cnt = l_cx_cnt - 1
+                l_cx_cnt = l_cx_cnt - 2
                 
                 scheduler.tree.refresh()
                 
@@ -221,12 +221,13 @@ def metrics(scheduler, n_qubits, ps_cnt, l_cx_cnt, l_single_gates_cnt):
         'IR_total': scheduler.total_logical_instruction,
         'IR_remain': len(scheduler.instruction_list),
         'IR_cancel_ratio': (scheduler.total_logical_instruction - len(scheduler.instruction_list)) / scheduler.total_logical_instruction,
-        'total_swap_count': scheduler.total_swap_cnt,
-        'total_bridge_count': scheduler.total_bridge_cnt,
+        'tetris_swap_count': scheduler.total_swap_cnt,
+        'tetris_cx_count' : scheduler.total_cx_cnt,
+        'tetris_bridge_count': scheduler.total_bridge_cnt,
         'pauli string count': ps_cnt,
         'original CNOT count': l_cx_cnt,
-        'single gate count without rz': l_single_gates_cnt,
-        'total gate count': ps_cnt + l_cx_cnt + l_single_gates_cnt
+        'original single gate count without rz': l_single_gates_cnt,
+        'original total gate count': ps_cnt + l_cx_cnt + l_single_gates_cnt
     }
 
 def debug(scheduler):
