@@ -118,7 +118,7 @@ def tree_synthesis1(qc, graph, pauli_map, ptree, psd):
     if rc != cnum:
         pass #print('lala left:',psd.ps, cnum, rc)
     pauli_single_gates(qc, pauli_map, ps, left=False)
-    return qc, cnt_swaps, lc
+    return qc, cnt_swaps, lc + rc
 
 def synthesis_initial(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan'):
     assign_time_parameter(pauli_layers, 1)
@@ -309,6 +309,7 @@ def block_opt_SC(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhat
                 for i3 in ins:
                     if i3[0] == 'swap':
                         qc.swap(i3[1][0], i3[1][1])
+                        total_swaps = total_swaps + 1
                 pcover = logical_list_physical(pauli_map, lcover)
                 # root is lmi
                 dp = max_dfs_tree(graph, pcover, graph[lmi])

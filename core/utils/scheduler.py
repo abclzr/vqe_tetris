@@ -98,6 +98,8 @@ class Scheduler:
                 pass
             elif not self.reverse_pauli_map[path[-1][1]] in nodes:
                 # the node doesn't sit on the centor and centor is empty
+                if path[-1][1] != centor:
+                    pdb.set_trace()
                 assert path[-1][1] == centor
                 self.physical_swap(path[-1][0], path[-1][1])
             else:
@@ -200,12 +202,8 @@ class Scheduler:
                 u, v = data
                 p_u, p_v = self.pauli_map[u], self.pauli_map[v]
                 path = self.shortest_path(p_u, p_v)
-                if (len(path) > 1):
-                    pdb.set_trace()
                 for u, v in path[:-1]:
                     self.physical_swap(u, v)
-                if len(path) == 0:
-                    pdb.set_trace()
                 self.qc.cx(path[-1][0], path[-1][1])
                 self.total_cx_cnt += 1
                 price = 3 * len(path) - 3 + 1
@@ -213,12 +211,8 @@ class Scheduler:
                 u, v = data
                 p_u, p_v = self.pauli_map[u], self.pauli_map[v]
                 path = self.shortest_path(p_u, p_v)
-                if (len(path) > 1):
-                    pdb.set_trace()
                 for u, v in path:
                     self.physical_swap(u, v)
-                if len(path) == 0:
-                    pdb.set_trace()
                 price = 3 * len(path)
             elif instruction.startswith('Logical_RZ'):
                 self.qc.rz(1, self.pauli_map[data])
@@ -232,7 +226,6 @@ class Scheduler:
             else:
                 raise Exception('Illegal instruction: ' + instruction)
             self.record.append((instruction, data, price))
-            assert price <= 3
         
         self.not_compiled_pointer = len(self.instruction_list)
     

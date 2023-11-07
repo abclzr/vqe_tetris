@@ -11,6 +11,7 @@ from config import test_scale
 import pdb
 import random
 from utils.synthesis_broccoli import synthesis
+from utils.synthesis_max_cancel import synthesis_max_cancel
 from utils.bridge_friendly_block_scheduling import bridge_friendly_block_scheduling
 import pickle
 
@@ -49,14 +50,18 @@ def PH_Mahattan(parr):
     qc1 = transpile(qc, basis_gates=['u3', 'cx'], coupling_map=coup, initial_layout=list(range(pnq)), optimization_level=0)
     t0 = ctime()
     qc2 = transpile(qc, basis_gates=['u3', 'cx'], coupling_map=coup, initial_layout=list(range(pnq)), optimization_level=3)
-    print_qc(qc2)
+    cnots, singles, depth = print_qc(qc2)
     print('Qiskit L3, Time costed:', ctime()-t0, flush=True)
     print('Total swaps:', total_swaps)
     print('Total cx:', total_cx)
     return {
         'n_qubits': lnq,
         'PH_swap_count': total_swaps,
-        'PH_cx_count' : total_cx
+        'PH_cx_count': total_cx,
+        'CNOT': cnots,
+        'Single': singles,
+        'Total': cnots+singles,
+        'Depth': depth,
     }
 
 
@@ -75,8 +80,34 @@ def Tetris_Mahattan(parr, use_bridge):
     qc1 = transpile(qc, basis_gates=['u3', 'cx'], coupling_map=coup, initial_layout=list(range(pnq)), optimization_level=0)
     t0 = ctime()
     qc2 = transpile(qc, basis_gates=['u3', 'cx'], coupling_map=coup, initial_layout=list(range(pnq)), optimization_level=3)
-    print_qc(qc2)
+    cnots, singles, depth = print_qc(qc2)
     print('Qiskit L3, Time costed:', ctime()-t0, flush=True)
+    metrics.update({'CNOT': cnots,
+                    'Single': singles,
+                    'Total': cnots+singles,
+                    'Depth': depth})
+    print(metrics)
+    return metrics
+
+# Tetris Mahattan device method
+def Tetris_max_cancel_Mahattan(parr, use_bridge):
+    print('Tetris passes, Our schedule, Our synthesis, mahattan', flush=True)
+    lnq = len(parr[0][0])
+    length = lnq // 2 # `length' is a hyperparameter, and can be adjusted for best performance. Here we keep `length' fixed for simplicity.
+    coup = load_coupling_map('manhattan')
+    t0 = ctime()
+    qc, metrics = synthesis_max_cancel(parr, arch='manhattan', use_bridge=use_bridge)
+    pnq = qc.num_qubits
+    print('Tetris, Time costed:', ctime()-t0, flush=True)
+    qc1 = transpile(qc, basis_gates=['u3', 'cx'], coupling_map=coup, initial_layout=list(range(pnq)), optimization_level=0)
+    t0 = ctime()
+    qc2 = transpile(qc, basis_gates=['u3', 'cx'], coupling_map=coup, initial_layout=list(range(pnq)), optimization_level=3)
+    cnots, singles, depth = print_qc(qc2)
+    print('Qiskit L3, Time costed:', ctime()-t0, flush=True)
+    metrics.update({'CNOT': cnots,
+                    'Single': singles,
+                    'Total': cnots+singles,
+                    'Depth': depth})
     print(metrics)
     return metrics
 
@@ -93,40 +124,49 @@ def merge_block(parr, size):
         new_blocks.append(new_block)
     return new_blocks
 
-############################
-# UCCSD Part
-############################
-# UCCSD- 8,12,16,20,24,28
-moles = ['LiH', 'BeH2', 'CH4', 'MgH', 'LiCl', 'CO2']
-if test_scale == 'small':
-    k = 6
-else:
-    k = 6
 
-mapper = 'jordan_wigner'
-# mapper = 'parity'
-# mapper = 'bravyikitaev'
+if __name__ == '__main__':
+    ############################
+    # UCCSD Part
+    ############################
+    # UCCSD- 8,12,16,20,24,28
+    moles = ['LiH', 'BeH2', 'CH4', 'MgH', 'LiCl', 'CO2']
+    if test_scale == 'small':
+        k = 6
+    else:
+        k = 6
 
-metrics_list = []
+    mapper = 'jordan_wigner'
+    # mapper = 'parity'
+    # mapper = 'bravyikitaev'
 
-print("+++++++++PauliHedral+++++++++++")
-for i in range(0,k):
-    print('UCCSD:', moles[i])
-    parr = load_oplist(mapper, moles[i])
-    # print(parr[-19:-18])
-    # PH_Mahattan(parr[-19:-18])
-    metrics = PH_Mahattan(parr)
-    metrics_list.append((moles[i], metrics))
+    # metrics_list = []
 
-pickle_dump(metrics_list, 'PH_data.pickle')
+    # print("+++++++++PauliHedral+++++++++++")
+    # for i in range(0,k):
+    #     print('UCCSD:', moles[i])
+    #     parr = load_oplist(mapper, moles[i])
+    #     metrics = PH_Mahattan(parr)
+    #     metrics_list.append((moles[i], metrics))
 
-metrics_list = []
-print("+++++++++Our method+++++++++++")
-for i in range(0,k):
-    print('UCCSD:', moles[i])
-    parr = load_oplist(mapper, moles[i])
-    # Tetris_Mahattan(parr[-19:-18], use_bridge=False)
-    metrics = Tetris_Mahattan(parr, use_bridge=False)
-    metrics_list.append((moles[i], metrics))
+    # pickle_dump(metrics_list, 'PH_data.pickle')
 
-pickle_dump(metrics_list, 'Tetris_data.pickle')
+    # metrics_list = []
+    # print("+++++++++Our method+++++++++++")
+    # for i in range(0,k):
+    #     print('UCCSD:', moles[i])
+    #     parr = load_oplist(mapper, moles[i])
+    #     metrics = Tetris_Mahattan(parr, use_bridge=False)
+    #     metrics_list.append((moles[i], metrics))
+
+    # pickle_dump(metrics_list, 'Tetris_data.pickle')
+    
+    metrics_list = []
+    print("+++++++++Our method+++++++++++")
+    for i in range(0,k):
+        print('UCCSD:', moles[i])
+        parr = load_oplist(mapper, moles[i])
+        metrics = Tetris_max_cancel_Mahattan(parr, use_bridge=False)
+        metrics_list.append((moles[i], metrics))
+
+    pickle_dump(metrics_list, 'Tetris_max_cancel_data.pickle')
