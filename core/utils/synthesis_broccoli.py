@@ -38,7 +38,7 @@ def synthesis_initial(pauli_layers, pauli_map=None, graph=None, qc=None, arch='m
         qc = QuantumCircuit(pnq)
     return pauli_map, graph, qc
 
-def synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan', use_bridge=False):
+def synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan', use_bridge=False, swap_coefficient=3):
     pauli_map, graph, qc = synthesis_initial(pauli_layers, pauli_map, graph, qc, arch)
     scheduler = Scheduler(pauli_map, graph, qc)
     n_qubits = len(pauli_layers[0][0][0].ps)
@@ -123,7 +123,7 @@ def synthesis(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan
                 flower_head = flower_head[:-1]
                 centor = stalk[0]
             root_tree_nodes, edges1 = scheduler.gather_root_tree(stalk, centor)
-            edges2 = scheduler.gather_leaf_tree(flower_head, root_tree_nodes, len(block), use_bridge)
+            edges2 = scheduler.gather_leaf_tree(flower_head, root_tree_nodes, len(block), use_bridge, swap_coefficient=swap_coefficient)
             # scheduler.MST_init(n_qubits)
             
             # mst_edges1 = scheduler.MST(flower_head, edges=[(flower_head[i], flower_head[j])\

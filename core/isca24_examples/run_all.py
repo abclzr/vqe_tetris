@@ -66,7 +66,7 @@ def PH_Mahattan(parr):
 
 
 # Tetris Mahattan device method
-def Tetris_Mahattan(parr, use_bridge):
+def Tetris_Mahattan(parr, use_bridge, swap_coefficient=3):
     print('Tetris passes, Our schedule, Our synthesis, mahattan', flush=True)
     lnq = len(parr[0][0])
     length = lnq // 2 # `length' is a hyperparameter, and can be adjusted for best performance. Here we keep `length' fixed for simplicity.
@@ -74,7 +74,7 @@ def Tetris_Mahattan(parr, use_bridge):
     t0 = ctime()
     a2 = bridge_friendly_block_scheduling(parr)#, length=length, maxiter=30)
     # a2 = [[block] for block in parr]
-    qc, metrics = synthesis(a2, arch='manhattan', use_bridge=use_bridge)
+    qc, metrics = synthesis(a2, arch='manhattan', use_bridge=use_bridge, swap_coefficient=swap_coefficient)
     pnq = qc.num_qubits
     print('Tetris, Time costed:', ctime()-t0, flush=True)
     qc1 = transpile(qc, basis_gates=['u3', 'cx'], coupling_map=coup, initial_layout=list(range(pnq)), optimization_level=0)
@@ -130,7 +130,7 @@ if __name__ == '__main__':
     # UCCSD Part
     ############################
     # UCCSD- 8,12,16,20,24,28
-    moles = ['LiH', 'BeH2', 'CH4', 'MgH', 'LiCl', 'CO2']
+    moles = ['LiH', 'BeH2', 'CH4', 'MgH2', 'LiCl', 'CO2']
     if test_scale == 'small':
         k = 6
     else:
@@ -161,12 +161,23 @@ if __name__ == '__main__':
 
     # pickle_dump(metrics_list, 'Tetris_data.pickle')
     
-    metrics_list = []
-    print("+++++++++Our method+++++++++++")
-    for i in range(0,k):
-        print('UCCSD:', moles[i])
-        parr = load_oplist(mapper, moles[i])
-        metrics = Tetris_max_cancel_Mahattan(parr, use_bridge=False)
-        metrics_list.append((moles[i], metrics))
+    # metrics_list = []
+    # print("+++++++++Our method+++++++++++")
+    # for i in range(0,k):
+    #     print('UCCSD:', moles[i])
+    #     parr = load_oplist(mapper, moles[i])
+    #     metrics = Tetris_max_cancel_Mahattan(parr, use_bridge=False)
+    #     metrics_list.append((moles[i], metrics))
 
-    pickle_dump(metrics_list, 'Tetris_max_cancel_data.pickle')
+    # pickle_dump(metrics_list, 'Tetris_max_cancel_data.pickle')
+    
+    for swap_coefficient in [0, 1, 2, 4, 1000]:
+        metrics_list = []
+        print("+++++++++Our method+++++++++++")
+        for i in range(0,k):
+            print('UCCSD:', moles[i])
+            parr = load_oplist(mapper, moles[i])
+            metrics = Tetris_Mahattan(parr, use_bridge=False, swap_coefficient=swap_coefficient)
+            metrics_list.append((moles[i], metrics))
+
+        pickle_dump(metrics_list, f'Tetris_swap_coefficient_{swap_coefficient}_data.pickle')

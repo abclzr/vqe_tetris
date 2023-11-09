@@ -108,7 +108,7 @@ class Scheduler:
             connected_component.append(self.pauli_map[n])
         return connected_component, edges
     
-    def gather_leaf_tree(self, leaf_nodes, connected_component, n_paulistring, use_bridge):
+    def gather_leaf_tree(self, leaf_nodes, connected_component, n_paulistring, use_bridge, swap_coefficient=3):
         leaf_nodes = sorted(leaf_nodes, key=lambda leaf: min([self.distance[self.pauli_map[leaf]][c] for c in connected_component]))
         connected_leaf_physical = []
         edges = []
@@ -116,12 +116,12 @@ class Scheduler:
             min_dis = 0x7777777
             closest_dest = -1
             for dest in connected_component:
-                if (self.distance[self.pauli_map[leaf]][dest] - 1) * 3 + 2 * n_paulistring < min_dis:
-                    min_dis = (self.distance[self.pauli_map[leaf]][dest] - 1) * 3 + 2 * n_paulistring
+                if (self.distance[self.pauli_map[leaf]][dest] - 1) * swap_coefficient + 2 * n_paulistring < min_dis:
+                    min_dis = (self.distance[self.pauli_map[leaf]][dest] - 1) * swap_coefficient + 2 * n_paulistring
                     closest_dest = dest
             for dest in connected_leaf_physical:
-                if (self.distance[self.pauli_map[leaf]][dest] - 1) * 3 + 2 < min_dis:
-                    min_dis = (self.distance[self.pauli_map[leaf]][dest] - 1) * 3 + 2
+                if (self.distance[self.pauli_map[leaf]][dest] - 1) * swap_coefficient + 2 < min_dis:
+                    min_dis = (self.distance[self.pauli_map[leaf]][dest] - 1) * swap_coefficient + 2
                     closest_dest = dest
             
             path = self.shortest_path(self.pauli_map[leaf], closest_dest)
