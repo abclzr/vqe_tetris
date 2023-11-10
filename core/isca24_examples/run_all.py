@@ -171,7 +171,7 @@ if __name__ == '__main__':
 
     # pickle_dump(metrics_list, 'Tetris_max_cancel_data.pickle')
     
-    for swap_coefficient in [0, 1, 2, 4, 1000]:
+    for swap_coefficient in [0.25, 0.5, 0.75]:
         metrics_list = []
         print("+++++++++Our method+++++++++++")
         for i in range(0,k):

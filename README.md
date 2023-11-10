@@ -7,8 +7,9 @@ pip install qiskit-nature
 pip install qiskit-optimization
 pip install pyscf
 ```
-Run table2 in Paulihedral
+Run experiments
 ```
-cd paulihedral
-python table2.py
+cd core
+export PYTHONPATH=.
+python isca23_examples/run_all.py
 ```
