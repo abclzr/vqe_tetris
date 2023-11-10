@@ -11,5 +11,5 @@ Run experiments
 ```
 cd core
 export PYTHONPATH=.
-python isca23_examples/run_all.py
+python isca24_examples/run_all.py
 ```
