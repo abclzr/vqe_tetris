@@ -5,6 +5,7 @@ from functools import partial
 from utils.scheduler import Scheduler
 import random
 import pdb
+from utils.tree import Tree
 
 from qiskit import QuantumCircuit
 
@@ -82,7 +83,6 @@ def synthesis_k_leaftrees(pauli_layers, pauli_map=None, graph=None, qc=None, arc
     # print(block_cnt)
     # print(rdy_for_bridge)
     block_cnt = 0
-    last_ps_common_part = []
     for block in pauli_layers:
         ps_cnt = ps_cnt + len(block)
         block_cnt = block_cnt + 1
@@ -128,23 +128,14 @@ def synthesis_k_leaftrees(pauli_layers, pauli_map=None, graph=None, qc=None, arc
         # assign level 2 qubits as stalk
         flower_head = []
         stalk = []
-        current_common_part = []
         
         for i, l in enumerate(level):
             if l == 1: # common part
                 flower_head.append(i)
-                current_common_part.append(i)
             elif l == 2:
                 stalk.append(i)
         
-        flag, element = is_permutation_with_one_extra_element(current_common_part, last_ps_common_part)
-        if flag:
-            # if true, means we can cancel across the block:
-            last_ps_common_part.append(element)
-        else:
-            last_ps_common_part = current_common_part
-
-            # the left side of a pauli string circuit
+        # the left side of a pauli string circuit
         scheduler.enable_cancel = True
         for i in flower_head:
             pauli = block[0].ps[i]
@@ -161,13 +152,38 @@ def synthesis_k_leaftrees(pauli_layers, pauli_map=None, graph=None, qc=None, arc
             else:
                 raise Exception('Illegal pauli operator: ' + pauli)
         
-        for i in range(len(last_ps_common_part) - 1):
-            common_1 = last_ps_common_part[i]
-            common_2 = last_ps_common_part[i + 1]
-            scheduler.add_instruction('Logical_CNOT', (common_1, common_2))
+        scheduler.MST_init(flower_head)
+        edges = scheduler.MST(flower_head, [(x, y) for x in flower_head for y in flower_head if x < y], len(flower_head) - k)
+        # make k clusters
+        clusters = {}
+        for n in flower_head:
+            p = scheduler.union_find.find(n)
+            if p not in clusters:
+                clusters[p] = [n]
+            else:
+                clusters[p].append(n)
         
-        if element != -1:
-            stalk = stalk + [element]
+        centor = scheduler.find_centor(stalk)
+        
+        cls = list(clusters.values())
+        subtree_list = []
+        for cluster in cls:
+            root = -1
+            dis = 0x77777
+            for n in cluster:
+                if scheduler.distance[scheduler.pauli_map[n]][centor] < dis:
+                    dis = scheduler.distance[scheduler.pauli_map[n]][centor]
+                    root = n
+            
+            subtree = Tree(edges, root)
+            subtree_list.append((subtree, root))
+            assert root != -1
+        
+        for subtree, root in subtree_list:
+            for n in subtree.node_list:
+                if n.idx != root:
+                    scheduler.add_instruction('Logical_CNOT', (n.idx, n.parent))
+        
         centor = scheduler.find_centor(stalk)
         
         root_tree_nodes, edges1 = scheduler.gather_root_tree(stalk, centor)

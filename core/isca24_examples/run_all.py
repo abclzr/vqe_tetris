@@ -136,48 +136,49 @@ if __name__ == '__main__':
     else:
         k = 6
 
-    mapper = 'jordan_wigner'
-    # mapper = 'parity'
-    # mapper = 'bravyikitaev'
+    # mapper = 'jordan_wigner'
+    mapper = 'parity'
+    mapper = 'bravyi_kitaev'
 
-    # metrics_list = []
+    for mapper in ['parity', 'bravyi_kitaev']:
+        metrics_list = []
+        
+        print("+++++++++PauliHedral+++++++++++")
+        for i in range(0,k):
+            print('UCCSD:', moles[i])
+            parr = load_oplist(mapper, moles[i])
+            metrics = PH_Mahattan(parr)
+            metrics_list.append((moles[i], metrics))
 
-    # print("+++++++++PauliHedral+++++++++++")
-    # for i in range(0,k):
-    #     print('UCCSD:', moles[i])
-    #     parr = load_oplist(mapper, moles[i])
-    #     metrics = PH_Mahattan(parr)
-    #     metrics_list.append((moles[i], metrics))
+        pickle_dump(metrics_list, f'runs/{mapper}/PH_data.pickle')
 
-    # pickle_dump(metrics_list, 'PH_data.pickle')
-
-    # metrics_list = []
-    # print("+++++++++Our method+++++++++++")
-    # for i in range(0,k):
-    #     print('UCCSD:', moles[i])
-    #     parr = load_oplist(mapper, moles[i])
-    #     metrics = Tetris_Mahattan(parr, use_bridge=False)
-    #     metrics_list.append((moles[i], metrics))
-
-    # pickle_dump(metrics_list, 'Tetris_data.pickle')
-    
-    # metrics_list = []
-    # print("+++++++++Our method+++++++++++")
-    # for i in range(0,k):
-    #     print('UCCSD:', moles[i])
-    #     parr = load_oplist(mapper, moles[i])
-    #     metrics = Tetris_max_cancel_Mahattan(parr, use_bridge=False)
-    #     metrics_list.append((moles[i], metrics))
-
-    # pickle_dump(metrics_list, 'Tetris_max_cancel_data.pickle')
-    
-    for swap_coefficient in [0.25, 0.5, 0.75]:
         metrics_list = []
         print("+++++++++Our method+++++++++++")
         for i in range(0,k):
             print('UCCSD:', moles[i])
             parr = load_oplist(mapper, moles[i])
-            metrics = Tetris_Mahattan(parr, use_bridge=False, swap_coefficient=swap_coefficient)
+            metrics = Tetris_Mahattan(parr, use_bridge=False)
             metrics_list.append((moles[i], metrics))
 
-        pickle_dump(metrics_list, f'Tetris_swap_coefficient_{swap_coefficient}_data.pickle')
+        pickle_dump(metrics_list, f'runs/{mapper}/Tetris_data.pickle')
+        
+        metrics_list = []
+        print("+++++++++Our method+++++++++++")
+        for i in range(0,k):
+            print('UCCSD:', moles[i])
+            parr = load_oplist(mapper, moles[i])
+            metrics = Tetris_max_cancel_Mahattan(parr, use_bridge=False)
+            metrics_list.append((moles[i], metrics))
+
+        pickle_dump(metrics_list, f'runs/{mapper}/Tetris_max_cancel_data.pickle')
+    
+    # for swap_coefficient in [0.25, 0.5, 0.75]:
+    #     metrics_list = []
+    #     print("+++++++++Our method+++++++++++")
+    #     for i in range(0,k):
+    #         print('UCCSD:', moles[i])
+    #         parr = load_oplist(mapper, moles[i])
+    #         metrics = Tetris_Mahattan(parr, use_bridge=False, swap_coefficient=swap_coefficient)
+    #         metrics_list.append((moles[i], metrics))
+
+    #     pickle_dump(metrics_list, f'runs/{mapper}/Tetris_swap_coefficient_{swap_coefficient}_data.pickle')

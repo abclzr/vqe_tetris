@@ -166,9 +166,9 @@ class Scheduler:
     def MST_init(self, n_nodes):
         self.union_find = UnionFind(n_nodes)
     
-    def MST(self, nodes, edges):
+    def MST(self, nodes, edges, num_edges_in_tree):
         edges = sorted(edges, key=lambda x: self.distance[self.pauli_map[x[0]]][self.pauli_map[x[1]]])
-        mst_edges = kruskal_mst(edges, self.union_find, self.distance)
+        mst_edges = kruskal_mst(edges, self.union_find, self.distance, num_edges_in_tree)
         return mst_edges
     
     def accept_MST(self, edges):

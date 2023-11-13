@@ -23,13 +23,15 @@ class UnionFind:
         return True
 
 
-def kruskal_mst(edges, union_find, distance):
+def kruskal_mst(edges, union_find, distance, num_edges_in_tree):
     mst_edges = []
 
     for edge in edges:
         (src, dest) = edge
         if union_find.union(src, dest):
             mst_edges.append(edge)
+        if len(mst_edges) >= num_edges_in_tree:
+            break
 
     return mst_edges
 
