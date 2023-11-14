@@ -65,14 +65,16 @@ def is_permutation_with_one_extra_element(list1, list2):
 
 
 def synthesis_k_leaftrees(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan', use_bridge=False, k=1):
-    pauli_map, graph, qc = synthesis_initial([[block] for block in pauli_layers], pauli_map, graph, qc, arch)
+    pauli_map, graph, qc = synthesis_initial(pauli_layers, pauli_map, graph, qc, arch)
     scheduler = Scheduler(pauli_map, graph, qc)
-    n_qubits = len(pauli_layers[0][0].ps)
+    n_qubits = len(pauli_layers[0][0][0].ps)
     rdy_for_bridge = [0 for i in range(n_qubits)]
     block_cnt = 0
     
     l_single_gates_cnt = 0
     ps_cnt = 0
+    
+    pauli_layers = [block for blocks in pauli_layers for block in blocks]
     
     for block in pauli_layers:
         block_cnt = block_cnt + 1
@@ -152,7 +154,7 @@ def synthesis_k_leaftrees(pauli_layers, pauli_map=None, graph=None, qc=None, arc
             else:
                 raise Exception('Illegal pauli operator: ' + pauli)
         
-        scheduler.MST_init(flower_head)
+        scheduler.MST_init(n_qubits)
         edges = scheduler.MST(flower_head, [(x, y) for x in flower_head for y in flower_head if x < y], len(flower_head) - k)
         # make k clusters
         clusters = {}
@@ -167,6 +169,7 @@ def synthesis_k_leaftrees(pauli_layers, pauli_map=None, graph=None, qc=None, arc
         
         cls = list(clusters.values())
         subtree_list = []
+        leaftree_roots = []
         for cluster in cls:
             root = -1
             dis = 0x77777
@@ -177,13 +180,18 @@ def synthesis_k_leaftrees(pauli_layers, pauli_map=None, graph=None, qc=None, arc
             
             subtree = Tree(edges, root)
             subtree_list.append((subtree, root))
+            leaftree_roots.append(root)
             assert root != -1
+        
+        saved_leaf_cnots = []
         
         for subtree, root in subtree_list:
             for n in subtree.node_list:
                 if n.idx != root:
                     scheduler.add_instruction('Logical_CNOT', (n.idx, n.parent))
+                    saved_leaf_cnots.append((n.idx, n.parent))
         
+        stalk = stalk + leaftree_roots
         centor = scheduler.find_centor(stalk)
         
         root_tree_nodes, edges1 = scheduler.gather_root_tree(stalk, centor)
@@ -201,7 +209,7 @@ def synthesis_k_leaftrees(pauli_layers, pauli_map=None, graph=None, qc=None, arc
             # the left side of a pauli string circuit
             scheduler.enable_cancel = True
             for i in stalk:
-                if i == element:
+                if i in leaftree_roots:
                     continue
                 pauli = pauli_string.ps[i]
                 if pauli == 'I':
@@ -245,7 +253,7 @@ def synthesis_k_leaftrees(pauli_layers, pauli_map=None, graph=None, qc=None, arc
                 scheduler.add_instruction(ir[0], ir[1])
             
             for i in reversed(stalk):
-                if i == element:
+                if i in leaftree_roots:
                     continue
                 pauli = pauli_string.ps[i]
                 if pauli == 'I' or pauli == 'Z':
@@ -257,12 +265,9 @@ def synthesis_k_leaftrees(pauli_layers, pauli_map=None, graph=None, qc=None, arc
                 else:
                     raise Exception('Illegal pauli operator: ' + pauli)
     
+        for (idx, parent) in reversed(saved_leaf_cnots):
+            scheduler.add_instruction('Logical_CNOT', (idx, parent))
 
-        for i in reversed(range(len(last_ps_common_part) - 1)):
-            common_1 = last_ps_common_part[i]
-            common_2 = last_ps_common_part[i + 1]
-            scheduler.add_instruction('Logical_CNOT', (common_1, common_2))
-        
         for i in reversed(flower_head):
             pauli = block[0].ps[i]
             if pauli == 'I':

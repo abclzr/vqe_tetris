@@ -12,6 +12,7 @@ import pdb
 import random
 from utils.synthesis_broccoli import synthesis
 from utils.synthesis_max_cancel import synthesis_max_cancel
+from utils.synthesis_k_leaftrees import synthesis_k_leaftrees
 from utils.bridge_friendly_block_scheduling import bridge_friendly_block_scheduling
 import pickle
 
@@ -111,6 +112,29 @@ def Tetris_max_cancel_Mahattan(parr, use_bridge):
     print(metrics)
     return metrics
 
+# Tetris Mahattan device method
+def Tetris_k_leaftrees_Mahattan(parr, use_bridge, k):
+    print('Tetris passes, Our schedule, Our synthesis, mahattan', flush=True)
+    lnq = len(parr[0][0])
+    length = lnq // 2 # `length' is a hyperparameter, and can be adjusted for best performance. Here we keep `length' fixed for simplicity.
+    coup = load_coupling_map('manhattan')
+    t0 = ctime()
+    a2 = depth_oriented_scheduling(parr)#, length=length, maxiter=30)
+    qc, metrics = synthesis_k_leaftrees(a2, arch='manhattan', use_bridge=use_bridge, k=k)
+    pnq = qc.num_qubits
+    print('Tetris, Time costed:', ctime()-t0, flush=True)
+    qc1 = transpile(qc, basis_gates=['u3', 'cx'], coupling_map=coup, initial_layout=list(range(pnq)), optimization_level=0)
+    t0 = ctime()
+    qc2 = transpile(qc, basis_gates=['u3', 'cx'], coupling_map=coup, initial_layout=list(range(pnq)), optimization_level=3)
+    cnots, singles, depth = print_qc(qc2)
+    print('Qiskit L3, Time costed:', ctime()-t0, flush=True)
+    metrics.update({'CNOT': cnots,
+                    'Single': singles,
+                    'Total': cnots+singles,
+                    'Depth': depth})
+    print(metrics)
+    return metrics
+
 def merge_block(parr, size):
     tmp = 0
     new_blocks = []
@@ -140,38 +164,50 @@ if __name__ == '__main__':
     mapper = 'parity'
     mapper = 'bravyi_kitaev'
 
-    for mapper in ['parity', 'bravyi_kitaev']:
+    for mapper in ['jordan_wigner']:#, 'parity', 'bravyi_kitaev']:
         metrics_list = []
         
-        print("+++++++++PauliHedral+++++++++++")
-        for i in range(0,k):
-            print('UCCSD:', moles[i])
-            parr = load_oplist(mapper, moles[i])
-            metrics = PH_Mahattan(parr)
-            metrics_list.append((moles[i], metrics))
+        # print("+++++++++PauliHedral+++++++++++")
+        # for i in range(0,k):
+        #     print('UCCSD:', moles[i])
+        #     parr = load_oplist(mapper, moles[i])
+        #     metrics = PH_Mahattan(parr)
+        #     metrics_list.append((moles[i], metrics))
 
-        pickle_dump(metrics_list, f'runs/{mapper}/PH_data.pickle')
+        # pickle_dump(metrics_list, f'runs/{mapper}/PH_data.pickle')
 
-        metrics_list = []
-        print("+++++++++Our method+++++++++++")
-        for i in range(0,k):
-            print('UCCSD:', moles[i])
-            parr = load_oplist(mapper, moles[i])
-            metrics = Tetris_Mahattan(parr, use_bridge=False)
-            metrics_list.append((moles[i], metrics))
+        # metrics_list = []
+        # print("+++++++++Our method+++++++++++")
+        # for i in range(0,k):
+        #     print('UCCSD:', moles[i])
+        #     parr = load_oplist(mapper, moles[i])
+        #     metrics = Tetris_Mahattan(parr, use_bridge=False)
+        #     metrics_list.append((moles[i], metrics))
 
-        pickle_dump(metrics_list, f'runs/{mapper}/Tetris_data.pickle')
+        # pickle_dump(metrics_list, f'runs/{mapper}/Tetris_data.pickle')
         
-        metrics_list = []
-        print("+++++++++Our method+++++++++++")
-        for i in range(0,k):
-            print('UCCSD:', moles[i])
-            parr = load_oplist(mapper, moles[i])
-            metrics = Tetris_max_cancel_Mahattan(parr, use_bridge=False)
-            metrics_list.append((moles[i], metrics))
+        # metrics_list = []
+        # print("+++++++++Our method+++++++++++")
+        # for i in range(0,k):
+        #     print('UCCSD:', moles[i])
+        #     parr = load_oplist(mapper, moles[i])
+        #     metrics = Tetris_max_cancel_Mahattan(parr, use_bridge=False)
+        #     metrics_list.append((moles[i], metrics))
 
-        pickle_dump(metrics_list, f'runs/{mapper}/Tetris_max_cancel_data.pickle')
+        # pickle_dump(metrics_list, f'runs/{mapper}/Tetris_max_cancel_data.pickle')
     
+        metrics_list = []
+        print("+++++++++Our method+++++++++++")
+        for num_leaftrees in [1, 2, 3, 4]:
+            metrics_list = []
+            for i in range(0,k):
+                print('UCCSD:', moles[i])
+                parr = load_oplist(mapper, moles[i])
+                metrics = Tetris_k_leaftrees_Mahattan(parr, use_bridge=False, k=num_leaftrees)
+                metrics_list.append((moles[i], metrics))
+
+            pickle_dump(metrics_list, f'runs/{mapper}/Tetris_DO_{num_leaftrees}_leaftrees_data.pickle')
+        
     # for swap_coefficient in [0.25, 0.5, 0.75]:
     #     metrics_list = []
     #     print("+++++++++Our method+++++++++++")
