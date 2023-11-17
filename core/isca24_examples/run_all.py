@@ -31,7 +31,10 @@ def pickle_load(filename):
     return obj
 
 def load_oplist(mapper_name, mole_name):
-    fth = os.path.join('data', mapper_name, mole_name + '_UCCSD.pickle')
+    if mapper_name == 'random':
+        fth = os.path.join('data', 'random', f'random_{mole_name}.pickle')
+    else:
+        fth = os.path.join('data', mapper_name, mole_name + '_UCCSD.pickle')
     with open(fth, 'rb') as f:
         entry = pickle.load(f)
     return entry
@@ -65,7 +68,7 @@ def PH_Mahattan(parr):
         'Single': singles,
         'Total': cnots+singles,
         'Depth': depth,
-        'qasm' : qc2.qasm2(),
+        'qasm' : qc2.qasm(),
         'latency1' : latency1,
         'latency2' : latency2
     }
@@ -94,7 +97,7 @@ def Tetris_Mahattan(parr, use_bridge, swap_coefficient=3):
                     'Single': singles,
                     'Total': cnots+singles,
                     'Depth': depth,
-                    'qasm' : qc2.qasm2(),
+                    'qasm' : qc2.qasm(),
                     'latency1' : latency1,
                     'latency2' : latency2
                 })
@@ -122,7 +125,7 @@ def Tetris_max_cancel_Mahattan(parr, use_bridge):
                     'Single': singles,
                     'Total': cnots+singles,
                     'Depth': depth,
-                    'qasm' : qc2.qasm2(),
+                    'qasm' : qc2.qasm(),
                     'latency1' : latency1,
                     'latency2' : latency2
                 })
@@ -165,34 +168,35 @@ def merge_block(parr, size):
         new_blocks.append(new_block)
     return new_blocks
 
-def run_random_benchmark():
-
-    metrics_list = []
+def run_random_benchmark(k=6):
+    n_q = [10, 15, 20, 25, 30, 35]
     
+    metrics_list = []
     print("+++++++++PauliHedral+++++++++++")
     for i in range(0,k):
-        print('UCCSD:', moles[i])
-        parr = load_oplist('random', moles[i])
+        print('Random:', n_q[i])
+        parr = load_oplist('random', n_q[i])
         metrics = PH_Mahattan(parr)
-        metrics_list.append((moles[i], metrics))
-    pickle_dump(metrics_list, f'runs_final/{random}/PH_data.pickle')
-    metrics_list = []
-    print("+++++++++Our method+++++++++++")
-    for i in range(0,k):
-        print('UCCSD:', moles[i])
-        parr = load_oplist('random', moles[i])
-        metrics = Tetris_Mahattan(parr, use_bridge=False)
-        metrics_list.append((moles[i], metrics))
-    pickle_dump(metrics_list, f'runs_final/{random}/Tetris_data.pickle')
+        metrics_list.append((f'random_{n_q[i]}', metrics))
+    pickle_dump(metrics_list, f'runs_final/random/PH_data.pickle')
     
     metrics_list = []
     print("+++++++++Our method+++++++++++")
     for i in range(0,k):
-        print('UCCSD:', moles[i])
-        parr = load_oplist('random', moles[i])
+        print('Random:', n_q[i])
+        parr = load_oplist('random', n_q[i])
+        metrics = Tetris_Mahattan(parr, use_bridge=False)
+        metrics_list.append((f'random_{n_q[i]}', metrics))
+    pickle_dump(metrics_list, f'runs_final/random/Tetris_data.pickle')
+    
+    metrics_list = []
+    print("+++++++++Our method+++++++++++")
+    for i in range(0,k):
+        print('Random:', n_q[i])
+        parr = load_oplist('random', n_q[i])
         metrics = Tetris_max_cancel_Mahattan(parr, use_bridge=False)
-        metrics_list.append((moles[i], metrics))
-    pickle_dump(metrics_list, f'runs_final/{random}/Max_cancel_data.pickle')
+        metrics_list.append((f'random_{n_q[i]}', metrics))
+    pickle_dump(metrics_list, f'runs_final/random/Max_cancel_data.pickle')
 
 
 if __name__ == '__main__':
