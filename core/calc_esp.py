@@ -18,8 +18,8 @@ mapper = 'jordan_wigner'
 # mapper = 'parity'
 
 PH_data_list = pickle_load(f'runs_final/PH_data.pickle')
-Tetris_data_list = pickle_load(f'runs_final/Tetris_data.pickle')
-Max_cancel_data_list = pickle_load(f'runs_final/Max_cancel_data.pickle')
+Tetris_data_list = pickle_load(f'runs_final/jordan_wigner/Tetris_lookahead_data.pickle')
+# Max_cancel_data_list = pickle_load(f'runs_final/Max_cancel_data.pickle')
 
 from qiskit import QuantumCircuit
 from qiskit import QuantumCircuit, transpile, pulse
@@ -82,10 +82,9 @@ backend = FakeManhattan()
 cx_error, t1_time, t2_time, x_error = load_cx_error('ibm_ithaca_calibrations.csv')
 cx_error, t1_time, t2_time, x_error_ = load_cx_error('ibmq_manhattan_calibrations.csv')
 
-for i, (ph_data, tetris_data, max_cancel_data) in enumerate(zip(PH_data_list, Tetris_data_list, Max_cancel_data_list)):
+for i, (ph_data, tetris_data) in enumerate(zip(PH_data_list, Tetris_data_list)):
     mole, ph = ph_data
     mole, tetris = tetris_data
-    mole, max_cancel = max_cancel_data
     categories.append(mole)
     print(mole)
     
@@ -93,32 +92,46 @@ for i, (ph_data, tetris_data, max_cancel_data) in enumerate(zip(PH_data_list, Te
     qc = QuantumCircuit.from_qasm_str(ph['qasm'])
     duration = ph['duration']
     total_success_rate = 0.
+    involved_qubits = set()
     for ins in qc:
         if ins.operation.name == 'cx':
             lookup = (ins.qubits[0].index, ins.qubits[1].index)
+            involved_qubits.add(lookup[0])
+            involved_qubits.add(lookup[1])
             success_rate = 1 - cx_error[lookup]
             total_success_rate += np.log10(success_rate)
         elif ins.operation.name == 'u3':
             lookup = ins.qubits[0].index
+            involved_qubits.add(lookup)
             success_rate = 1 - x_error[lookup]
-            total_success_rate += np.log10(success_rate)
-    ph['success_rate'] = total_success_rate
+            total_success_rate += 2 * np.log10(success_rate)
+    for q in involved_qubits:
+        s_r = 1. - 1. / t2_time[q] * (1 - np.exp(-0.00022 *duration / t1_time[q]))
+        total_success_rate = total_success_rate + np.log10(s_r)
+    ph['success_rate_decoherence'] = total_success_rate
     
     qc = QuantumCircuit.from_qasm_str(tetris['qasm'])
     duration = tetris['duration']
     total_success_rate = 0.
+    involved_qubits = set()
     for ins in qc:
         if ins.operation.name == 'cx':
             lookup = (ins.qubits[0].index, ins.qubits[1].index)
+            involved_qubits.add(lookup[0])
+            involved_qubits.add(lookup[1])
             success_rate = 1 - cx_error[lookup]
             total_success_rate += np.log10(success_rate)
         elif ins.operation.name == 'u3':
             lookup = ins.qubits[0].index
+            involved_qubits.add(lookup)
             success_rate = 1 - x_error[lookup]
             total_success_rate += 2 * np.log10(success_rate)
-    tetris['success_rate'] = total_success_rate
-    tetris['ESP_imp'] = tetris['success_rate'] - ph['success_rate']
+    for q in involved_qubits:
+        s_r = 1. - 1. / t2_time[q] * (1 - np.exp(-0.00022 *duration / t1_time[q]))
+        total_success_rate = total_success_rate + np.log10(s_r)
+    tetris['success_rate_decoherence'] = total_success_rate
+    tetris['ESP_imp'] = tetris['success_rate_decoherence'] - ph['success_rate_decoherence']
     print(tetris['ESP_imp'])
 
 pickle_dump(PH_data_list, 'runs_final/PH_data.pickle')
-pickle_dump(Tetris_data_list, 'runs_final/Tetris_data.pickle')
+pickle_dump(Tetris_data_list, 'runs_final/jordan_wigner/Tetris_lookahead_data.pickle')

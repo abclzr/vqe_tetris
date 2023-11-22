@@ -38,7 +38,7 @@ def synthesis_initial(pauli_layers, pauli_map=None, graph=None, qc=None, arch='m
         qc = QuantumCircuit(pnq)
     return pauli_map, graph, qc
 
-def try_block(n_qubits, block, scheduler):
+def try_block(n_qubits : int, block : list, scheduler : Scheduler):
     level = [-1 for i in range(n_qubits)]
     prior = ['' for i in range(n_qubits)]
     # level 0: always I
@@ -70,7 +70,7 @@ def try_block(n_qubits, block, scheduler):
                     level[wire] = 2
             else:
                 raise Exception('None I, X, Y or Z character in ' + pauli_string.ps)
-                
+        
     # assign level 1 qubits as flower_head
     # assign level 2 qubits as stalk
     flower_head = []
@@ -156,7 +156,20 @@ def try_block(n_qubits, block, scheduler):
                 scheduler.add_instruction('Logical_right_Y', i)
             else:
                 raise Exception('Illegal pauli operator: ' + pauli)
-        
+        scheduler.clear_uncompiled_logical_instructions()
+
+def similarity(level1, level2):
+    common = 0
+    ls1 = 0
+    ls2 = 0
+    for l1, l2 in zip(level1, level2):
+        if l1 == 1 and l2 == 1:
+            common = common + 1
+        if l1 == 1:
+            ls1 = ls1 + 1
+        if l2 == 1:
+            ls2 = ls2 + 1
+    return 0 if common == 0 else float(common) / (ls1 + ls2 - common)
 
 def synthesis_lookahead(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan', use_bridge=False, swap_coefficient=3):
     pauli_map, graph, qc = synthesis_initial([[block] for block in pauli_layers], pauli_map, graph, qc, arch)
@@ -168,20 +181,67 @@ def synthesis_lookahead(pauli_layers, pauli_map=None, graph=None, qc=None, arch=
     for block in pauli_layers:
         block_cnt = block_cnt + 1
     print(block_cnt)
-    block_cnt = 0
+    
+    level_list = []
+    for block in pauli_layers:
+        level = [-1 for i in range(n_qubits)]
+        prior = ['' for i in range(n_qubits)]
+        for pauli_string in block:
+            for wire, pauli_op in enumerate(pauli_string.ps):
+                if prior[wire] == '':
+                    if pauli_op == 'I':
+                        level[wire] = 0
+                        prior[wire] = 'I'
+                    elif pauli_op == 'X' or pauli_op == 'Y' or pauli_op == 'Z':
+                        level[wire] = 1
+                        prior[wire] = pauli_op
+                    else:
+                        raise Exception('None I, X, Y or Z character in ' + pauli_string.ps)
+                
+                if level[wire] == 2:
+                    continue
+                
+                if pauli_op == 'I':
+                    if level[wire] == 1:
+                        level[wire] = 2
+                elif pauli_op == 'X' or pauli_op == 'Y' or pauli_op == 'Z':
+                    if level[wire] == 0:
+                        level[wire] = 2
+                    elif level[wire] == 1 and prior[wire] != pauli_op:
+                        level[wire] = 2
+                else:
+                    raise Exception('None I, X, Y or Z character in ' + pauli_string.ps)
+        
+        level_list.append(level)
+
+    last_level = None
     while len(pauli_layers) > 0:
-        block = pauli_layers[0]
-        ps_cnt = ps_cnt + len(block)
-        block_cnt = block_cnt + 1
-        try_block(n_qubits, block, scheduler)
-        # print(scheduler.pauli_map)
-    scheduler.clear_uncompiled_logical_instructions()
+        if last_level == None:
+            selected_index = list(range(10))
+        else:
+            sorted_index = sorted(list(range(len(pauli_layers))), key=lambda i: -similarity(last_level, level_list[i]))
+            selected_index = sorted_index[:10]
+        
+        cost_list = []
+        for index in selected_index:
+            block = pauli_layers[index]
+            test_scheduler = Scheduler(None, None, None, from_other_scheduler=scheduler)
+            try_block(n_qubits, block, test_scheduler)
+            cost = test_scheduler.collect_CNOT_cost_in_one_block()
+            cost_list.append((index, cost))
+        sorted_cost_list = sorted(cost_list, key=lambda pair: pair[1])
+        index = sorted_cost_list[0][0]
+        
+        try_block(n_qubits, pauli_layers[index], scheduler)
+        del pauli_layers[index]
+        last_level = level_list[index]
+        del level_list[index]
 
     # debug(scheduler)
     
-    return scheduler.qc, metrics(scheduler, n_qubits, ps_cnt)
+    return scheduler.qc, metrics(scheduler, n_qubits)
 
-def metrics(scheduler, n_qubits, ps_cnt):
+def metrics(scheduler, n_qubits):
     return {
         'n_qubits': n_qubits,
         'IR_total': scheduler.total_logical_instruction,
@@ -190,7 +250,6 @@ def metrics(scheduler, n_qubits, ps_cnt):
         'tetris_swap_count': scheduler.total_swap_cnt,
         'tetris_cx_count' : scheduler.total_cx_cnt,
         'tetris_bridge_count': scheduler.total_bridge_cnt,
-        'pauli string count': ps_cnt,
     }
 
 def debug(scheduler):

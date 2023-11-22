@@ -76,7 +76,38 @@ def is_code_reduced(code):
         reduced = False
     return reduced
 
+def load_sycamore_graph(dist_comp):
+    pth = os.path.join('arch', 'sycamore_64.txt')
+
+    coup = []
+    n = 0
+    with open(pth, 'r') as file:
+        lines = file.readlines()
+        num_nodes, num_edges = map(int, lines[0].split()[:2])
+        n = num_nodes
+        
+        # Add edges to the graph
+        for edge in lines[1:]:
+            node1, node2 = map(int, edge.split()[:2])
+            coup.append([node1, node2])
+            coup.append([node2, node1])
+
+    n = max([max(i) for i in coup]) + 1
+    G = np.zeros((n, n))
+    C = np.ones((n, n))*max_dist
+    for i in range(n):
+        C[i, i] = 0
+    for i in coup:
+        G[i[0], i[1]] = 1
+        C[i[0], i[1]] = 1
+    if dist_comp == True:
+        for i in range(n):
+            dijkstra(C, i)
+    return G, C
+
 def load_graph(code, dist_comp=False, len_func=lambda x:x):
+    if code == 'sycamore':
+        return load_sycamore_graph(dist_comp)
     reduced = is_code_reduced(code)
     pth = os.path.join('arch', 'data', 'ibmq_'+code+'_calibrations.csv')
     cgs = []

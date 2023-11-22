@@ -8,11 +8,17 @@ import pdb
 
 
 class Scheduler:
-    def __init__(self, pauli_map, graph, qc):
+    def __init__(self, pauli_map, graph, qc, from_other_scheduler=None):
+        if from_other_scheduler != None:
+            self.copy(from_other_scheduler)
+            return
+        
         self.pauli_map = pauli_map
         self.graph = graph
         self.qc = qc
+        self.test_mode = False
         
+        self.cost_in_one_block = 0
         self.reverse_pauli_map = [-1 for i in self.graph.data]
         self.is_ancilla = [True for i in self.graph.data]
         for p_q in pauli_map:
@@ -49,13 +55,44 @@ class Scheduler:
         self.total_cx_cnt = 0
         self.total_bridge_cnt = 0
     
+    def copy(self, scheduler):
+        self.pauli_map = scheduler.pauli_map.copy()
+        self.graph = scheduler.graph
+        self.qc = None
+        self.test_mode = True
+        
+        self.cost_in_one_block = 0
+        self.reverse_pauli_map = scheduler.reverse_pauli_map.copy()
+        self.is_ancilla = scheduler.reverse_pauli_map.copy()
+        self.pauli_map = scheduler.pauli_map.copy()
+        
+        self.distance = scheduler.distance
+        self.tree = Tree([], 0)
+        
+        # enable_cancel == True means you can only record the instructions not do any qubit routing
+        self.enable_cancel = True
+
+        self.instruction_list = []
+        for i in range(scheduler.not_compiled_pointer, len(scheduler.instruction_list)):
+            self.instruction_list.append(scheduler.instruction_list[i])
+        self.record = []
+        self.not_compiled_pointer = 0
+        self.total_logical_instruction = 0
+        self.canceled_logical_instruction = 0
+        self.total_swap_cnt = 0
+        self.total_cx_cnt = 0
+        self.total_bridge_cnt = 0
+
     def notify_ancilla(self, logical_i):
         physical_i = self.pauli_map[logical_i]
         self.is_ancilla[physical_i] = True
     
     def physical_swap(self, physical_i, physical_j):
         self.total_swap_cnt = self.total_swap_cnt + 1
-        self.qc.swap(physical_i, physical_j)
+        if self.test_mode == False:
+            self.qc.swap(physical_i, physical_j)
+        else:
+            self.cost_in_one_block += 3
         # assert self.graph.G[physical_i, physical_j] == 1
         logical_i, logical_j = self.reverse_pauli_map[physical_i], self.reverse_pauli_map[physical_j]
         self.pauli_map[logical_i] = physical_j
@@ -189,7 +226,47 @@ class Scheduler:
                     break
         return path
     
+    # this function is for test_mode scheduler
+    def collect_CNOT_cost_in_one_block(self):
+        for i in range(self.not_compiled_pointer, len(self.instruction_list)):
+            (instruction, data) = self.instruction_list[i]
+            if instruction.startswith('Logical_left_X'):
+                price = 0
+            elif instruction.startswith('Logical_left_Y'):
+                price = 0
+            elif instruction.startswith('Logical_CNOT'):
+                u, v = data
+                p_u, p_v = self.pauli_map[u], self.pauli_map[v]
+                path = self.shortest_path(p_u, p_v)
+                for u, v in path[:-1]:
+                    self.physical_swap(u, v)
+                self.total_cx_cnt += 1
+                price = 1
+            elif instruction.startswith('Logical_SWAP'):
+                u, v = data
+                p_u, p_v = self.pauli_map[u], self.pauli_map[v]
+                path = self.shortest_path(p_u, p_v)
+                for u, v in path:
+                    self.physical_swap(u, v)
+                price = 0
+            elif instruction.startswith('Logical_RZ'):
+                price = 0
+            elif instruction.startswith('Logical_right_X'):
+                price = 0
+            elif instruction.startswith('Logical_right_Y'):
+                price = 0
+            else:
+                raise Exception('Illegal instruction: ' + instruction)
+            self.record.append((instruction, data, price))
+            self.cost_in_one_block += price
+        
+        self.not_compiled_pointer = len(self.instruction_list)
+        return self.cost_in_one_block
+    
+    # this function is for real scheduler
     def clear_uncompiled_logical_instructions(self):
+        if self.test_mode:
+            return
         for i in range(self.not_compiled_pointer, len(self.instruction_list)):
             (instruction, data) = self.instruction_list[i]
             if instruction.startswith('Logical_left_X'):

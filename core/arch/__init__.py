@@ -5,6 +5,7 @@ max_dist = 1000000
 max_size = 1000000
 package_directory = os.path.dirname(os.path.abspath(__file__))
 import csv
+from utils.hardware import load_sycamore_graph
 
 class pNode:
     def __init__(self, idx):
@@ -77,6 +78,8 @@ def is_code_reduced(code):
     return reduced
 
 def load_graph(code, dist_comp=False, len_func=lambda x:x):
+    if code == 'sycamore':
+        return load_sycamore_graph(dist_comp)
     reduced = is_code_reduced(code)
     pth = os.path.join(package_directory, 'data', 'ibmq_'+code+'_calibrations.csv')
     cgs = []
