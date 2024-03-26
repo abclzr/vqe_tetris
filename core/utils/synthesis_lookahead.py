@@ -38,7 +38,7 @@ def synthesis_initial(pauli_layers, pauli_map=None, graph=None, qc=None, arch='m
         qc = QuantumCircuit(pnq)
     return pauli_map, graph, qc
 
-def try_block(n_qubits : int, block : list, scheduler : Scheduler):
+def try_block(n_qubits : int, block : list, scheduler : Scheduler, swap_coefficient : int):
     level = [-1 for i in range(n_qubits)]
     prior = ['' for i in range(n_qubits)]
     # level 0: always I
@@ -93,7 +93,7 @@ def try_block(n_qubits : int, block : list, scheduler : Scheduler):
         flower_head = flower_head[:-1]
         centor = stalk[0]
     root_tree_nodes, edges1 = scheduler.gather_root_tree(stalk, centor)
-    edges2 = scheduler.gather_leaf_tree(flower_head, root_tree_nodes, len(block), use_bridge=False, swap_coefficient=3)
+    edges2 = scheduler.gather_leaf_tree(flower_head, root_tree_nodes, len(block), use_bridge=False, swap_coefficient=swap_coefficient)
     find_root = True
     for pauli_string in block:
         if find_root == True:
@@ -171,7 +171,7 @@ def similarity(level1, level2):
             ls2 = ls2 + 1
     return 0 if common == 0 else float(common) / (ls1 + ls2 - common)
 
-def synthesis_lookahead(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan', use_bridge=False, swap_coefficient=3):
+def synthesis_lookahead(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan', use_bridge=False, swap_coefficient=3, k=10):
     pauli_map, graph, qc = synthesis_initial([[block] for block in pauli_layers], pauli_map, graph, qc, arch)
     scheduler = Scheduler(pauli_map, graph, qc)
     n_qubits = len(pauli_layers[0][0].ps)
@@ -217,22 +217,22 @@ def synthesis_lookahead(pauli_layers, pauli_map=None, graph=None, qc=None, arch=
     last_level = None
     while len(pauli_layers) > 0:
         if last_level == None:
-            selected_index = list(range(10))
+            selected_index = list(range(k))
         else:
             sorted_index = sorted(list(range(len(pauli_layers))), key=lambda i: -similarity(last_level, level_list[i]))
-            selected_index = sorted_index[:10]
+            selected_index = sorted_index[:k]
         
         cost_list = []
         for index in selected_index:
             block = pauli_layers[index]
             test_scheduler = Scheduler(None, None, None, from_other_scheduler=scheduler)
-            try_block(n_qubits, block, test_scheduler)
+            try_block(n_qubits, block, test_scheduler, swap_coefficient=swap_coefficient)
             cost = test_scheduler.collect_CNOT_cost_in_one_block()
             cost_list.append((index, cost))
         sorted_cost_list = sorted(cost_list, key=lambda pair: pair[1])
         index = sorted_cost_list[0][0]
         
-        try_block(n_qubits, pauli_layers[index], scheduler)
+        try_block(n_qubits, pauli_layers[index], scheduler, swap_coefficient=swap_coefficient)
         del pauli_layers[index]
         last_level = level_list[index]
         del level_list[index]

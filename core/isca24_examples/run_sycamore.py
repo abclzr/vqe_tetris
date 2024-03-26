@@ -154,7 +154,7 @@ def Tetris_max_cancel_Sycamore(parr, use_bridge):
 
 
 # Tetris Sycamore device method
-def Tetris_lookahead_Sycamore(parr, use_bridge, swap_coefficient=3):
+def Tetris_lookahead_Sycamore(parr, use_bridge, swap_coefficient=3, k=10):
     print('Tetris passes, Our schedule, Our synthesis, Sycamore', flush=True)
     lnq = len(parr[0][0])
     length = lnq // 2 # `length' is a hyperparameter, and can be adjusted for best performance. Here we keep `length' fixed for simplicity.
@@ -163,7 +163,7 @@ def Tetris_lookahead_Sycamore(parr, use_bridge, swap_coefficient=3):
     # a2 = gate_count_oriented_scheduling(parr)#, length=length, maxiter=30)
     # a2 = [block for blocks in a2 for block in blocks]
     a2 = parr
-    qc, metrics = synthesis_lookahead(a2, arch='sycamore', use_bridge=use_bridge, swap_coefficient=swap_coefficient)
+    qc, metrics = synthesis_lookahead(a2, arch='sycamore', use_bridge=use_bridge, swap_coefficient=swap_coefficient, k=k)
     pnq = qc.num_qubits
     latency1 = ctime() - t0
     print('Tetris, Time costed:', ctime()-t0, flush=True)

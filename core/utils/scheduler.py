@@ -1,7 +1,8 @@
 from utils.hardware import pNode, pGraph
 from utils.mst import UnionFind, kruskal_mst
-from utils.floyd import floyd_warshall
+from utils.floyd import floyd_warshall, bfs
 from utils.tree import Tree
+from collections import deque
 
 import numpy as np
 import pdb
@@ -18,7 +19,14 @@ class Scheduler:
         self.qc = qc
         self.test_mode = False
         
-        self.cost_in_one_block = 0
+        #[TODO]: to be fixed
+        self.cost_in_one_block = 0        
+        # apply floyd_warshall algorithm to calculate the distance
+        self.distance = floyd_warshall(self.graph.G)
+        self.tree = Tree([], 0)
+        
+        centor = self.find_centor_graph()
+        self.pauli_map = self.get_pauli_map_around_centor(centor)
         self.reverse_pauli_map = [-1 for i in self.graph.data]
         self.is_ancilla = [True for i in self.graph.data]
         for p_q in pauli_map:
@@ -27,22 +35,7 @@ class Scheduler:
         for i, j in enumerate(self.pauli_map):
             # logical qubit i mapped to physical qubit j
             self.reverse_pauli_map[j] = i
-        
-        logical_qubit_id = len(self.pauli_map)
-        for i in range(len(self.reverse_pauli_map)):
-            if self.reverse_pauli_map[i] == -1:
-                self.reverse_pauli_map[i] = logical_qubit_id
-                logical_qubit_id = logical_qubit_id + 1
-        assert logical_qubit_id == len(self.reverse_pauli_map)
-        
-        self.pauli_map = [0 for i in self.reverse_pauli_map]
-        for i, j in enumerate(self.reverse_pauli_map):
-            self.pauli_map[j] = i
-        
-        # apply floyd_warshall algorithm to calculate the distance
-        self.distance = floyd_warshall(self.graph.G)
-        self.tree = Tree([], 0)
-        
+        assert not -1 in self.reverse_pauli_map
         # enable_cancel == True means you can only record the instructions not do any qubit routing
         self.enable_cancel = True
         
@@ -115,6 +108,43 @@ class Scheduler:
                 centor = c
         return centor
     
+    def find_centor_graph(self):
+        centor = -1
+        num_vertices = len(self.graph)
+
+        min_total_distance = 0x7777777
+        for c in range(num_vertices):
+            total_distance = 0
+            for n in range(num_vertices):
+                total_distance = total_distance + self.distance[n][c]
+            if total_distance < min_total_distance:
+                min_total_distance = total_distance
+                centor = c
+        return centor
+    
+    def get_pauli_map_around_centor(self, centor):
+        num_vertices = len(self.graph)
+        visited = [False for _ in range(num_vertices)]
+        visited[centor] = True
+        queue = deque([centor])
+        
+        index = 0
+        pauli_map = [-1 for _ in range(num_vertices)]
+        pauli_map[index] = centor
+        
+        while queue:
+            u = queue.popleft()
+            for v in range(num_vertices):
+                if self.graph.G[u][v] == 1:
+                    if not visited[v]:
+                        visited[v] = True
+                        queue.append(v)
+                        index = index + 1
+                        pauli_map[index] = v
+        
+        assert index == num_vertices - 1
+        return pauli_map
+
     def gather_root_tree(self, nodes, centor):
         close_to_far = sorted(nodes, key=lambda n: self.distance[self.pauli_map[n]][centor])
         connected_component = []
@@ -163,6 +193,67 @@ class Scheduler:
             
             path = self.shortest_path(self.pauli_map[leaf], closest_dest)
             assert len(path) > 0
+            tmp = 0
+            while tmp < len(path) and not path[tmp][1] in connected_component + connected_leaf_physical:
+                tmp = tmp + 1
+            closest_dest = path[tmp][1]
+            path = path[:tmp]
+            
+            bridge_edges = []
+            if use_bridge:
+                while len(path) > 0 and self.is_ancilla[path[-1][1]]:
+                    bridge_edges.append(path.pop())
+                if bridge_edges != []:
+                    # print(bridge_edges)
+                    self.total_bridge_cnt = self.total_bridge_cnt + len(bridge_edges)
+            # for edge in path[:-1]:
+            #     if not edge[1] in connected_component + connected_leaf_physical:
+            #         self.physical_swap(edge[0], edge[1])
+            #     else:
+            #         closest_dest = edge[1]
+            #         break
+            for edge in path:
+                self.physical_swap(edge[0], edge[1])
+            for edge in reversed(bridge_edges):
+                edges.append((self.reverse_pauli_map[edge[0]], self.reverse_pauli_map[edge[1]]))
+            
+            if bridge_edges == []:
+                edges.append((leaf, self.reverse_pauli_map[closest_dest]))
+            else:
+                # edges.append((leaf, self.reverse_pauli_map[bridge_edges[-1][0]]))
+                edges.append((self.reverse_pauli_map[bridge_edges[0][1]], self.reverse_pauli_map[closest_dest]))
+            
+            connected_leaf_physical.append(self.pauli_map[leaf])
+            for edge in bridge_edges:
+                connected_leaf_physical.append(edge[0])
+                connected_leaf_physical.append(edge[1])
+        return edges
+    
+    def gather_leaf_tree_bfs(self, leaf_nodes, connected_component, n_paulistring, use_bridge, swap_coefficient=3):
+        leaf_nodes = sorted(leaf_nodes, key=lambda leaf: min([self.distance[self.pauli_map[leaf]][c] for c in connected_component]))
+        connected_leaf_physical = []
+        edges = []
+        while leaf_nodes != []:
+            min_dis = 0x7777777
+            paths = []
+            for index, leaf in enumerate(leaf_nodes):
+                path_r, path_l = bfs(self.pauli_map[leaf], connected_component, connected_leaf_physical, self.graph.G)
+                for p in path_r:
+                    paths.append(((p[0] - 1) * swap_coefficient + 2 * n_paulistring, p[1], p[2]))
+                for p in path_l:
+                    paths.append(((p[0] - 1) * swap_coefficient + 2, p[1], p[2]))
+            
+            # Tuple with the smallest cost
+            min_tuple = min(paths, key=lambda x: x[0])
+
+            
+            path = min_tuple[2]
+            assert len(path) > 0
+            assert path[-1][1] in connected_component + connected_leaf_physical
+            index = leaf_nodes.index(self.reverse_pauli_map[path[0][0]])
+            leaf = leaf_nodes[index]
+            del(leaf_nodes[index])
+            
             tmp = 0
             while tmp < len(path) and not path[tmp][1] in connected_component + connected_leaf_physical:
                 tmp = tmp + 1

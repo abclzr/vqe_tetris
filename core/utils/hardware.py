@@ -1,5 +1,6 @@
 __all__ = ['load_graph', 'load_coupling_map', 'pNode', 'pGraph', 'dijkstra', 'max_dist', 'graph_from_coupling']
 import os
+import pdb
 import numpy as np
 max_dist = 1000000
 max_size = 1000000
@@ -109,7 +110,8 @@ def load_graph(code, dist_comp=False, len_func=lambda x:x):
     if code == 'sycamore':
         return load_sycamore_graph(dist_comp)
     reduced = is_code_reduced(code)
-    pth = os.path.join('arch', 'data', 'ibmq_'+code+'_calibrations.csv')
+    filepath = os.path.abspath(__file__)
+    pth = os.path.join(os.path.dirname(os.path.dirname(filepath)), 'arch', 'data', 'ibmq_'+code+'_calibrations.csv')
     cgs = []
     n = 0
     with open(pth, 'r') as cf:

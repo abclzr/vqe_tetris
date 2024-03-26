@@ -15,6 +15,7 @@ from utils.synthesis_max_cancel import synthesis_max_cancel
 from utils.synthesis_k_leaftrees import synthesis_k_leaftrees
 from utils.synthesis_lookahead import synthesis_lookahead
 from utils.bridge_friendly_block_scheduling import bridge_friendly_block_scheduling
+from utils.grey_code_scheduling import sort_paulistrings, extract_first_ps
 import pickle
 
 random.seed(1926)
@@ -109,6 +110,43 @@ def Tetris_Mahattan(parr, use_bridge, swap_coefficient=3):
             print(f"{key}: {value}")
     return metrics
 
+
+# Tetris Mahattan device method
+def Tetris_grey_Mahattan(parr, use_bridge, swap_coefficient=3):
+    print('Tetris passes, Our schedule, Our synthesis, mahattan', flush=True)
+    lnq = len(parr[0][0])
+    length = lnq // 2 # `length' is a hyperparameter, and can be adjusted for best performance. Here we keep `length' fixed for simplicity.
+    coup = load_coupling_map('manhattan')
+    t0 = ctime()
+    
+    filename, map = extract_first_ps(parr)
+    a2 = sort_paulistrings(filename, map)
+    a2 = [[block] for block in parr]
+    qc, metrics = synthesis(a2, arch='manhattan', use_bridge=use_bridge, swap_coefficient=swap_coefficient)
+    pnq = qc.num_qubits
+    latency1 = ctime() - t0
+    print('Tetris, Time costed:', ctime()-t0, flush=True)
+    qc1 = transpile(qc, basis_gates=['u3', 'cx'], coupling_map=coup, initial_layout=list(range(pnq)), optimization_level=0)
+    t0 = ctime()
+    qc2 = transpile(qc, basis_gates=['u3', 'cx'], coupling_map=coup, initial_layout=list(range(pnq)), optimization_level=3)
+    cnots, singles, depth = print_qc(qc2)
+    latency2 = ctime() - t0
+    print('Qiskit L3, Time costed:', ctime()-t0, flush=True)
+    metrics.update({'CNOT': cnots,
+                    'Single': singles,
+                    'Total': cnots+singles,
+                    'Depth': depth,
+                    'qasm' : qc2.qasm(),
+                    'latency1' : latency1,
+                    'latency2' : latency2
+                })
+    key_to_exclude = 'qasm'
+    # Printing key-value pairs excluding a certain key
+    for key, value in metrics.items():
+        if key != key_to_exclude:
+            print(f"{key}: {value}")
+    return metrics
+
 # Tetris Mahattan device method
 def Tetris_max_cancel_Mahattan(parr, use_bridge):
     print('Tetris passes, Our schedule, Our synthesis, mahattan', flush=True)
@@ -165,7 +203,7 @@ def Tetris_k_leaftrees_Mahattan(parr, use_bridge, k):
     return metrics
 
 # Tetris Mahattan device method
-def Tetris_lookahead_Mahattan(parr, use_bridge, swap_coefficient=3):
+def Tetris_lookahead_Mahattan(parr, use_bridge, swap_coefficient=3, k=10):
     print('Tetris passes, Our schedule, Our synthesis, mahattan', flush=True)
     lnq = len(parr[0][0])
     length = lnq // 2 # `length' is a hyperparameter, and can be adjusted for best performance. Here we keep `length' fixed for simplicity.
@@ -174,7 +212,7 @@ def Tetris_lookahead_Mahattan(parr, use_bridge, swap_coefficient=3):
     # a2 = gate_count_oriented_scheduling(parr)#, length=length, maxiter=30)
     # a2 = [block for blocks in a2 for block in blocks]
     a2 = parr
-    qc, metrics = synthesis_lookahead(a2, arch='manhattan', use_bridge=use_bridge, swap_coefficient=swap_coefficient)
+    qc, metrics = synthesis_lookahead(a2, arch='manhattan', use_bridge=use_bridge, swap_coefficient=swap_coefficient, k=k)
     pnq = qc.num_qubits
     latency1 = ctime() - t0
     print('Tetris, Time costed:', ctime()-t0, flush=True)
@@ -294,10 +332,20 @@ if __name__ == '__main__':
         for i in range(0,k):
             print('UCCSD:', moles[i])
             parr = load_oplist(mapper, moles[i])
-            metrics = Tetris_lookahead_Mahattan(parr, use_bridge=False)
+            metrics = Tetris_grey_Mahattan(parr, use_bridge=False)
             metrics_list.append((moles[i], metrics))
 
-        pickle_dump(metrics_list, f'runs_final/{mapper}/Tetris_lookahead_data.pickle')
+        pickle_dump(metrics_list, f'runs_final/{mapper}/Tetris_grey_data.pickle')
+        
+        # metrics_list = []
+        # print("+++++++++Our method+++++++++++")
+        # for i in range(0,k):
+        #     print('UCCSD:', moles[i])
+        #     parr = load_oplist(mapper, moles[i])
+        #     metrics = Tetris_lookahead_Mahattan(parr, use_bridge=False)
+        #     metrics_list.append((moles[i], metrics))
+
+        # pickle_dump(metrics_list, f'runs_final/{mapper}/Tetris_lookahead_data.pickle')
         
         # metrics_list = []
         # print("+++++++++Our method+++++++++++")
@@ -309,4 +357,4 @@ if __name__ == '__main__':
 
         # pickle_dump(metrics_list, f'runs_final/{mapper}/Max_cancel_data.pickle')
     
-    run_random_benchmark()
+    # run_random_benchmark()
