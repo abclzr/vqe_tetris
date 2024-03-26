@@ -1,14 +1,12 @@
-# vqe_project
+# vqe_tetris
 
 Install pyscf, qiskit 0.43.2, qiskit_nature, qiskit_optimization
 ```
-pip install qiskit=0.43.2
-pip install qiskit-nature
-pip install qiskit-optimization
-pip install pyscf
+pip install qiskit==0.43.2
+pip install pytket
 ```
 Run experiments
 ```
 cd artifact_evaluation
-python run_all -test_scale=1
+python3 run_all.py -test_scale=1
 ```
