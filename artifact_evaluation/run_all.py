@@ -224,7 +224,7 @@ def run_random_benchmark(k=6, result_path=None):
         else:
             print('Random:', n_q[i])
             parr = load_oplist('random', n_q[i])
-            metrics = Tetris_Mahattan(parr, use_bridge=False)
+            metrics = Tetris_lookahead_Mahattan(parr, use_bridge=False)
             pickle_dump((f'random_{n_q[i]}', metrics), filename)
         
         metrics_list.append((f'random_{n_q[i]}', metrics))
@@ -293,7 +293,7 @@ if __name__ == '__main__':
             else:
                 print('UCCSD:', moles[i])
                 parr = load_oplist(mapper, moles[i])
-                metrics = Tetris_Mahattan(parr, use_bridge=False)
+                metrics = Tetris_lookahead_Mahattan(parr, use_bridge=False)
                 pickle_dump((moles[i], metrics), filename)
             metrics_list.append((moles[i], metrics))
         pickle_dump(metrics_list, f'{result_path}/{mapper}/Tetris_data.pickle')

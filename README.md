@@ -1,4 +1,4 @@
-# vqe_project
+# vqe_tetris
 
 Install pyscf, qiskit 0.43.2, qiskit_nature, qiskit_optimization
 ```
