@@ -79,9 +79,9 @@ def format_thousands(value, pos):
 x_values = np.array(['LiH', 'BeH2', 'CH4', 'MgH2'])  # X-axis values
 n = len(x_values)
 TKet_data_list = pickle_load(f'../core/runs_final/jordan_wigner/tket_data.pickle')[:n]
-PH_data_list = pickle_load(f'../core/runs_final/jordan_wigner/PH_data.pickle')[:n]
+PH_data_list = pickle_load(f'experiment_results/jordan_wigner/PH_data.pickle')[:n]
 Tetris_data_list = pickle_load(f'../core/runs_final/jordan_wigner/Tetris_data.pickle')[:n]
-Tetris_lh_data_list = pickle_load(f'../core/runs_final/jordan_wigner/Tetris_lookahead_data.pickle')[:n]
+Tetris_lh_data_list = pickle_load(f'experiment_results/jordan_wigner/Tetris_data.pickle')[:n]
 
 tk_cnots = []
 ph_cnots = []

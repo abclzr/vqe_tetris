@@ -7,7 +7,10 @@ pip install pytket
 ```
 Run experiments
 ```
-export PYTHONPATH=core
 cd artifact_evaluation
-python3 run_all.py -test_scale=1
+export PYTHONPATH=../core
+python3 run_all.py -test_scale=6
+python3 calculate_duration.py
+python3 show.py
+python3 test_fidelity.py
 ```
