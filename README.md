@@ -7,6 +7,7 @@ pip install pytket
 ```
 Run experiments
 ```
+export PYTHONPATH=core
 cd artifact_evaluation
 python3 run_all.py -test_scale=1
 ```

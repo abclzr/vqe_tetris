@@ -3,7 +3,7 @@ import sys
 sys.path.append('../core/')
 import argparse
 from utils.parallel_bl import *
-from qiskit import QuantumCircuit, transpile, qasm2
+from qiskit import QuantumCircuit, transpile
 import synthesis_SC
 import synthesis_FT
 from tools import *
