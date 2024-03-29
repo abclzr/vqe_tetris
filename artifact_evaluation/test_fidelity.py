@@ -13,13 +13,7 @@ import time, sys, os
 from t_arch import *
 import pdb
 import random
-from utils.synthesis_broccoli import synthesis
-from utils.synthesis_max_cancel import synthesis_max_cancel
-from utils.synthesis_k_leaftrees import synthesis_k_leaftrees
-from utils.synthesis_lookahead import synthesis_lookahead
 from utils.synthesis_lookahead_bfs import synthesis_lookahead_bfs
-from utils.bridge_friendly_block_scheduling import bridge_friendly_block_scheduling
-from utils.grey_code_scheduling import sort_paulistrings, extract_first_ps
 ctime = time.time
 from qiskit_aer import AerSimulator
 from qiskit_aer.noise import (NoiseModel, QuantumError, ReadoutError,
