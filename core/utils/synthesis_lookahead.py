@@ -156,7 +156,7 @@ def try_block(n_qubits : int, block : list, scheduler : Scheduler, swap_coeffici
                 scheduler.add_instruction('Logical_right_Y', i)
             else:
                 raise Exception('Illegal pauli operator: ' + pauli)
-        scheduler.clear_uncompiled_logical_instructions()
+    scheduler.clear_uncompiled_logical_instructions()
 
 def similarity(level1, level2):
     common = 0
@@ -217,7 +217,7 @@ def synthesis_lookahead(pauli_layers, pauli_map=None, graph=None, qc=None, arch=
     last_level = None
     while len(pauli_layers) > 0:
         if last_level == None:
-            selected_index = list(range(k))
+            selected_index = list(range(min(k, len(pauli_layers))))
         else:
             sorted_index = sorted(list(range(len(pauli_layers))), key=lambda i: -similarity(last_level, level_list[i]))
             selected_index = sorted_index[:k]

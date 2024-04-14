@@ -1,13 +1,12 @@
 import sys, time
 from utils.parallel_bl import *
-from qiskit import QuantumCircuit, transpile, qasm2
+from qiskit import transpile
 import synthesis_SC
 import synthesis_FT
 from tools import *
 from arch import *
 import time, sys, os
 from t_arch import *
-from config import test_scale
 import pdb
 import random
 from utils.synthesis_broccoli import synthesis

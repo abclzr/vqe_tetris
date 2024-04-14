@@ -133,40 +133,58 @@ def test_fidelity(qc : QuantumCircuit):
     result = backend.run(qc).result()
     counts = result.get_counts(qc)
     # pdb.set_trace()
-    print(counts.get('0' * 65, 0) / 1024)
+    # print(counts.get('0' * 65, 0) / 1024)
     return counts.get('0' * 65, 0) / 1024
 
 
 if __name__ == '__main__':
-    for i in [0, 5]:
+    for i in [0]:
         if os.path.exists(f'experiment_results/fidelity_{i}.pickle'):
             continue
         moles = ['LiH', 'BeH2', 'CH4', 'MgH2', 'LiCl', 'CO2']
         mapper = 'jordan_wigner'
         print('UCCSD:', moles[i])
         parr = load_oplist(mapper, moles[i])
-        random.shuffle(parr)
-        X = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-        Y_ph = []
-        Y_tetris = []
-        for size in X:
-            metrics_ph, qc_ph = PH_Mahattan(parr[:size])
-            metrics_tetris, qc_tetris = Tetris_lookahead_Mahattan(parr[:size])
-
-            Y_ph.append(test_fidelity(qc_ph))
-            Y_tetris.append(test_fidelity(qc_tetris))
-            print(Y_ph)
-            print(Y_tetris)
         
-        pickle_dump((X, Y_ph, Y_tetris), f'experiment_results/fidelity_{i}.pickle')
+        num_samples = 100
+        Y_ph_list = []
+        Y_tetris_list = []
+        for sample_once in range(num_samples):
+            random.shuffle(parr)
+            X = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+            Y_ph = []
+            Y_tetris = []
+            for size in X:
+                metrics_ph, qc_ph = PH_Mahattan(parr[:size])
+                metrics_tetris, qc_tetris = Tetris_lookahead_Mahattan(parr[:size])
+
+                Y_ph.append(test_fidelity(qc_ph))
+                Y_tetris.append(test_fidelity(qc_tetris))
+                print(Y_ph)
+                print(Y_tetris)
+            Y_ph_list.append(Y_ph)
+            Y_tetris_list.append(Y_tetris)
+            print(f'Sample #{sample_once} finished')
+            pickle_dump((X, np.array(Y_ph_list), np.array(Y_tetris_list)), f'experiment_results/fidelity_{i}.pickle')
+
+        Y_ph_list = np.array(Y_ph_list)
+        Y_tetris_list = np.array(Y_tetris_list)
     
     import matplotlib.pyplot as plt
     moles = ['LiH', 'BeH2', 'CH4', 'MgH2', 'LiCl', 'CO2']
-    for i in [0, 5]:
-        X, Y_ph, Y_tetris = pickle_load(f'experiment_results/fidelity_{i}.pickle')
+    for i in [0]:
+        X, Y_ph_list, Y_tetris_list = pickle_load(f'experiment_results/fidelity_{i}.pickle')
+        Y_ph = Y_ph_list.mean(0)
+        Y_tetris = Y_tetris_list.mean(0)
+        Y_ph_min = Y_ph_list.min(0)
+        Y_tetris_min = Y_tetris_list.min(0)
+        Y_ph_max = Y_ph_list.max(0)
+        Y_tetris_max = Y_tetris_list.max(0)
+        
         fig, ax = plt.subplots()
-        plt.plot(X, Y_ph, label='PH', marker='*')
-        plt.plot(X, Y_tetris, label='Tetris', marker='s')
+
+        plt.errorbar(X, Y_ph, yerr=[Y_ph - Y_ph_min, Y_ph_max - Y_ph], label='PH', marker='*', alpha=0.9, ecolor='#1f77b4', capsize=5)
+        plt.errorbar(X, Y_tetris, yerr=[Y_tetris - Y_tetris_min, Y_tetris_max - Y_tetris], label='Tetris', marker='s', alpha=0.9, ecolor='#ff7f0e', capsize=5)
         ytick_labels = ax.get_yticklabels()
         for label in ytick_labels:
             label.set_fontweight('bold')
@@ -183,8 +201,7 @@ if __name__ == '__main__':
         legend = plt.legend(fontsize=24)
         for text in legend.get_texts():
             text.set_fontweight('bold')
-
+        plt.tight_layout()
         plt.savefig(f'figs/fidelity_{moles[i]}.pdf')
 
         # Display plot
-        plt.show()
