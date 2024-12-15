@@ -156,7 +156,7 @@ def try_block(n_qubits : int, block : list, scheduler : Scheduler, swap_coeffici
                 scheduler.add_instruction('Logical_right_Y', i)
             else:
                 raise Exception('Illegal pauli operator: ' + pauli)
-        scheduler.clear_uncompiled_logical_instructions()
+    scheduler.clear_uncompiled_logical_instructions()
 
 def similarity(level1, level2):
     common = 0
@@ -214,6 +214,7 @@ def synthesis_lookahead_bfs(pauli_layers, pauli_map=None, graph=None, qc=None, a
         
         level_list.append(level)
 
+    sorted_pauli_layers = []
     last_level = None
     while len(pauli_layers) > 0:
         if last_level == None:
@@ -232,6 +233,7 @@ def synthesis_lookahead_bfs(pauli_layers, pauli_map=None, graph=None, qc=None, a
         sorted_cost_list = sorted(cost_list, key=lambda pair: pair[1])
         index = sorted_cost_list[0][0]
         
+        sorted_pauli_layers.append(pauli_layers[index])
         try_block(n_qubits, pauli_layers[index], scheduler, swap_coefficient=swap_coefficient)
         del pauli_layers[index]
         last_level = level_list[index]
@@ -239,10 +241,11 @@ def synthesis_lookahead_bfs(pauli_layers, pauli_map=None, graph=None, qc=None, a
 
     # debug(scheduler)
     
-    return scheduler.qc, metrics(scheduler, n_qubits)
+    return scheduler.qc, metrics(scheduler, n_qubits), sorted_pauli_layers
 
 def metrics(scheduler, n_qubits):
     return {
+        'mapping': scheduler.pauli_map,
         'n_qubits': n_qubits,
         'IR_total': scheduler.total_logical_instruction,
         'IR_remain': len(scheduler.instruction_list),

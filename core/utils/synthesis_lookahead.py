@@ -243,6 +243,7 @@ def synthesis_lookahead(pauli_layers, pauli_map=None, graph=None, qc=None, arch=
 
 def metrics(scheduler, n_qubits):
     return {
+        'mapping': scheduler.pauli_map,
         'n_qubits': n_qubits,
         'IR_total': scheduler.total_logical_instruction,
         'IR_remain': len(scheduler.instruction_list),
