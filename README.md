@@ -7,7 +7,7 @@ pip install pytket
 cd artifact_evaluation
 export PYTHONPATH=../core
 ```
-Demo (This demo is checking the correctness on UCCSD from LiH jordan-wigner mapper. It may require a qiskit version 1.1.0. You can skip this demo and go to "Run experiments".)
+Demo (This demo is checking the correctness of tetris compiled UCCSD from LiH jordan-wigner mapper. It works under qiskit version 1.1.0 and not guaranteed to work under qiksit 0.43.2. You can skip this demo and go to "Run experiments".)
 ```
 python3 demo_correctness.py
 ```
