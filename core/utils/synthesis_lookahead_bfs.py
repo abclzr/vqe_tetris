@@ -172,6 +172,7 @@ def similarity(level1, level2):
     return 0 if common == 0 else float(common) / (ls1 + ls2 - common)
 
 def synthesis_lookahead_bfs(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan', use_bridge=False, swap_coefficient=3, k=10):
+    # pauli map is the initial qubit mapping
     pauli_map, graph, qc = synthesis_initial([[block] for block in pauli_layers], pauli_map, graph, qc, arch)
     scheduler = Scheduler(pauli_map, graph, qc)
     n_qubits = len(pauli_layers[0][0].ps)
@@ -216,6 +217,8 @@ def synthesis_lookahead_bfs(pauli_layers, pauli_map=None, graph=None, qc=None, a
 
     sorted_pauli_layers = []
     last_level = None
+    
+    # lookahead scheduling
     while len(pauli_layers) > 0:
         if last_level == None:
             selected_index = list(range(min(k, len(pauli_layers))))
